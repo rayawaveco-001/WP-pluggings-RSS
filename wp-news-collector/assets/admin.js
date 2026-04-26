@@ -1,4 +1,6 @@
 jQuery(document).ready(function($) {
+    'use strict';
+
     if ($('#wpnc-moderation-app').length === 0) {
         return;
     }
@@ -6,7 +8,7 @@ jQuery(document).ready(function($) {
     const app = $('#wpnc-moderation-app');
 
     function loadQueue() {
-        app.html('<p>Loading...</p>');
+        app.html('<p>' + wpnc_ajax.i18n.loading + '</p>');
         $.post(wpnc_ajax.ajax_url, {
             action: 'wpnc_get_queue',
             nonce: wpnc_ajax.nonce
@@ -14,28 +16,28 @@ jQuery(document).ready(function($) {
             if (response.success) {
                 renderGrid(response.data);
             } else {
-                app.html('<p>Error loading queue.</p>');
+                app.html('<p>' + wpnc_ajax.i18n.error_loading + '</p>');
             }
         });
     }
 
     function renderGrid(items) {
         if (items.length === 0) {
-            app.html('<p>No pending news in the queue.</p>');
+            app.html('<p>' + wpnc_ajax.i18n.no_pending + '</p>');
             return;
         }
 
         let html = `
             <div class="wpnc-bulk-actions">
-                <label><input type="checkbox" id="wpnc-select-all"> Select All</label>
-                <button class="button button-primary" id="wpnc-bulk-approve">Approve Selected</button>
-                <button class="button" id="wpnc-bulk-reject">Reject Selected</button>
+                <label><input type="checkbox" id="wpnc-select-all"> ${wpnc_ajax.i18n.select_all}</label>
+                <button class="button button-primary" id="wpnc-bulk-approve">${wpnc_ajax.i18n.approve_selected}</button>
+                <button class="button" id="wpnc-bulk-reject">${wpnc_ajax.i18n.reject_selected}</button>
             </div>
             <div class="wpnc-grid">
         `;
         items.forEach(function(item) {
-            let img = item.image_url ? `<img src="${item.image_url}" alt="Thumbnail">` : '<div class="wpnc-no-img">No Image</div>';
-            let tagsHtml = item.tags ? `<p style="font-size:11px; color:#999; margin:0 0 10px 0;">Tags: ${item.tags}</p>` : '';
+            let img = item.image_url ? `<img src="${item.image_url}" alt="Thumbnail">` : '<div class="wpnc-no-img">' + wpnc_ajax.i18n.no_image + '</div>';
+            let tagsHtml = item.tags ? `<p style="font-size:11px; color:#999; margin:0 0 10px 0;">${wpnc_ajax.i18n.tags}: ${item.tags}</p>` : '';
             html += `
                 <div class="wpnc-card" id="wpnc-item-${item.id}">
                     <div class="wpnc-card-header">
@@ -47,9 +49,9 @@ jQuery(document).ready(function($) {
                         <p class="wpnc-source">${item.source_name}</p>
                         ${tagsHtml}
                         <div class="wpnc-actions">
-                            <button class="button button-primary wpnc-approve" data-id="${item.id}">Approve</button>
-                            <button class="button wpnc-edit" data-id="${item.id}" data-title="${encodeURIComponent(item.title)}" data-desc="${encodeURIComponent(item.description)}">Edit</button>
-                            <button class="button wpnc-reject button-link-delete" data-id="${item.id}">Reject</button>
+                            <button class="button button-primary wpnc-approve" data-id="${item.id}">${wpnc_ajax.i18n.approve}</button>
+                            <button class="button wpnc-edit" data-id="${item.id}" data-title="${encodeURIComponent(item.title)}" data-desc="${encodeURIComponent(item.description)}">${wpnc_ajax.i18n.edit}</button>
+                            <button class="button wpnc-reject button-link-delete" data-id="${item.id}">${wpnc_ajax.i18n.reject}</button>
                         </div>
                     </div>
                 </div>
@@ -61,13 +63,13 @@ jQuery(document).ready(function($) {
         html += `
             <div id="wpnc-edit-modal" class="wpnc-modal" style="display:none;">
                 <div class="wpnc-modal-content">
-                    <h2>Edit News Item</h2>
+                    <h2>${wpnc_ajax.i18n.edit_item}</h2>
                     <input type="hidden" id="wpnc-edit-id">
                     <p><input type="text" id="wpnc-edit-title" class="large-text"></p>
                     <p><textarea id="wpnc-edit-desc" class="large-text" rows="5"></textarea></p>
                     <p>
-                        <button class="button button-primary" id="wpnc-save-edit">Save</button>
-                        <button class="button" id="wpnc-close-modal">Cancel</button>
+                        <button class="button button-primary" id="wpnc-save-edit">${wpnc_ajax.i18n.save}</button>
+                        <button class="button" id="wpnc-close-modal">${wpnc_ajax.i18n.cancel}</button>
                     </p>
                 </div>
             </div>
@@ -91,7 +93,7 @@ jQuery(document).ready(function($) {
                     card.fadeOut();
                 } else {
                     card.css('opacity', '1');
-                    alert('Error approving item.');
+                    alert(response.data || wpnc_ajax.i18n.error_approve);
                 }
             });
         });
@@ -109,7 +111,7 @@ jQuery(document).ready(function($) {
                     card.fadeOut();
                 } else {
                     card.css('opacity', '1');
-                    alert('Error rejecting item.');
+                    alert(response.data || wpnc_ajax.i18n.error_reject);
                 }
             });
         });
@@ -145,7 +147,7 @@ jQuery(document).ready(function($) {
                     $('#wpnc-edit-modal').hide();
                     loadQueue(); // Reload to show changes
                 } else {
-                    alert('Error saving changes.');
+                    alert(response.data || wpnc_ajax.i18n.error_save);
                 }
             });
         });
@@ -163,7 +165,7 @@ jQuery(document).ready(function($) {
 
             if (ids.length === 0) return;
 
-            $(this).text('Processing...').prop('disabled', true);
+            $(this).text(wpnc_ajax.i18n.processing).prop('disabled', true);
             $.post(wpnc_ajax.ajax_url, {
                 action: 'wpnc_bulk_approve',
                 ids: ids,
@@ -172,7 +174,7 @@ jQuery(document).ready(function($) {
                 if (response.success) {
                     loadQueue();
                 } else {
-                    alert('Error during bulk approve.');
+                    alert(response.data || wpnc_ajax.i18n.error_approve);
                 }
             });
         });
@@ -185,7 +187,7 @@ jQuery(document).ready(function($) {
 
             if (ids.length === 0) return;
 
-            $(this).text('Processing...').prop('disabled', true);
+            $(this).text(wpnc_ajax.i18n.processing).prop('disabled', true);
             $.post(wpnc_ajax.ajax_url, {
                 action: 'wpnc_bulk_reject',
                 ids: ids,
@@ -194,7 +196,7 @@ jQuery(document).ready(function($) {
                 if (response.success) {
                     loadQueue();
                 } else {
-                    alert('Error during bulk reject.');
+                    alert(response.data || wpnc_ajax.i18n.error_reject);
                 }
             });
         });

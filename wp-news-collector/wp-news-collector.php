@@ -51,7 +51,27 @@ function wpnc_enqueue_admin_assets( $hook ) {
 
 	wp_localize_script( 'wpnc-admin-script', 'wpnc_ajax', array(
 		'ajax_url' => admin_url( 'admin-ajax.php' ),
-		'nonce'    => wp_create_nonce( 'wpnc_admin_nonce' )
+		'nonce'    => wp_create_nonce( 'wpnc_admin_nonce' ),
+		'i18n'     => array(
+			'loading'          => __( 'Loading...', 'wp-news-collector' ),
+			'error_loading'    => __( 'Error loading queue.', 'wp-news-collector' ),
+			'no_pending'       => __( 'No pending news in the queue.', 'wp-news-collector' ),
+			'select_all'       => __( 'Select All', 'wp-news-collector' ),
+			'approve_selected' => __( 'Approve Selected', 'wp-news-collector' ),
+			'reject_selected'  => __( 'Reject Selected', 'wp-news-collector' ),
+			'no_image'         => __( 'No Image', 'wp-news-collector' ),
+			'tags'             => __( 'Tags', 'wp-news-collector' ),
+			'approve'          => __( 'Approve', 'wp-news-collector' ),
+			'edit'             => __( 'Edit', 'wp-news-collector' ),
+			'reject'           => __( 'Reject', 'wp-news-collector' ),
+			'edit_item'        => __( 'Edit News Item', 'wp-news-collector' ),
+			'save'             => __( 'Save', 'wp-news-collector' ),
+			'cancel'           => __( 'Cancel', 'wp-news-collector' ),
+			'error_approve'    => __( 'Error approving item.', 'wp-news-collector' ),
+			'error_reject'     => __( 'Error rejecting item.', 'wp-news-collector' ),
+			'error_save'       => __( 'Error saving changes.', 'wp-news-collector' ),
+			'processing'       => __( 'Processing...', 'wp-news-collector' ),
+		),
 	) );
 }
 add_action( 'admin_enqueue_scripts', 'wpnc_enqueue_admin_assets' );
@@ -62,7 +82,12 @@ function wpnc_enqueue_frontend_assets() {
 	wp_enqueue_script( 'wpnc-frontend-script', WPNC_PLUGIN_URL . 'assets/frontend.js', array( 'jquery' ), WPNC_VERSION, true );
 	wp_localize_script( 'wpnc-frontend-script', 'wpnc_frontend_ajax', array(
 		'ajax_url' => admin_url( 'admin-ajax.php' ),
-		'nonce'    => wp_create_nonce( 'wpnc_frontend_nonce' )
+		'nonce'    => wp_create_nonce( 'wpnc_frontend_nonce' ),
+		'i18n'     => array(
+			'loading'   => __( 'Loading...', 'wp-news-collector' ),
+			'load_more' => __( 'Load More News', 'wp-news-collector' ),
+			'no_more'   => __( 'No more news', 'wp-news-collector' ),
+		),
 	) );
 }
 add_action( 'wp_enqueue_scripts', 'wpnc_enqueue_frontend_assets' );

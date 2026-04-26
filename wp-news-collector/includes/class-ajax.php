@@ -32,7 +32,7 @@ class WPNC_Ajax {
 	public function get_queue() {
 		check_ajax_referer( 'wpnc_admin_nonce', 'nonce' );
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( 'Unauthorized.' );
+			wp_send_json_error( __( 'Unauthorized access.', 'wp-news-collector' ) );
 		}
 
 		global $wpdb;
@@ -49,14 +49,14 @@ class WPNC_Ajax {
 	public function approve_item() {
 		check_ajax_referer( 'wpnc_admin_nonce', 'nonce' );
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( 'Unauthorized.' );
+			wp_send_json_error( __( 'Unauthorized access.', 'wp-news-collector' ) );
 		}
 
 		if ( ! isset( $_POST['id'] ) ) {
-			wp_send_json_error( 'Invalid ID.' );
+			wp_send_json_error( __( 'Invalid ID provided.', 'wp-news-collector' ) );
 		}
 
-		$id = intval( $_POST['id'] );
+		$id = intval( wp_unslash( $_POST['id'] ) );
 
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'news_queue';
@@ -64,7 +64,7 @@ class WPNC_Ajax {
 		$item = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table_name WHERE id = %d", $id ) );
 
 		if ( ! $item ) {
-			wp_send_json_error( 'Item not found.' );
+			wp_send_json_error( __( 'Item not found.', 'wp-news-collector' ) );
 		}
 
 		// Fetcher instance is required for post publishing logic
@@ -85,9 +85,9 @@ class WPNC_Ajax {
 
 		if ( ! is_wp_error( $post_id ) && $post_id ) {
 			$wpdb->update( $table_name, array( 'status' => 'approved' ), array( 'id' => $id ) );
-			wp_send_json_success( array( 'message' => 'Approved and published.' ) );
+			wp_send_json_success( array( 'message' => __( 'Item approved and published successfully.', 'wp-news-collector' ) ) );
 		} else {
-			wp_send_json_error( 'Failed to publish post.' );
+			wp_send_json_error( __( 'Failed to publish the post.', 'wp-news-collector' ) );
 		}
 	}
 
@@ -97,21 +97,21 @@ class WPNC_Ajax {
 	public function reject_item() {
 		check_ajax_referer( 'wpnc_admin_nonce', 'nonce' );
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( 'Unauthorized.' );
+			wp_send_json_error( __( 'Unauthorized access.', 'wp-news-collector' ) );
 		}
 
 		if ( ! isset( $_POST['id'] ) ) {
-			wp_send_json_error( 'Invalid ID.' );
+			wp_send_json_error( __( 'Invalid ID provided.', 'wp-news-collector' ) );
 		}
 
-		$id = intval( $_POST['id'] );
+		$id = intval( wp_unslash( $_POST['id'] ) );
 
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'news_queue';
 
 		$wpdb->update( $table_name, array( 'status' => 'rejected' ), array( 'id' => $id ) );
 
-		wp_send_json_success( array( 'message' => 'Rejected successfully.' ) );
+		wp_send_json_success( array( 'message' => __( 'Item rejected successfully.', 'wp-news-collector' ) ) );
 	}
 
 	/**
@@ -120,14 +120,14 @@ class WPNC_Ajax {
 	public function edit_item() {
 		check_ajax_referer( 'wpnc_admin_nonce', 'nonce' );
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( 'Unauthorized.' );
+			wp_send_json_error( __( 'Unauthorized access.', 'wp-news-collector' ) );
 		}
 
 		if ( ! isset( $_POST['id'] ) || ! isset( $_POST['title'] ) || ! isset( $_POST['description'] ) ) {
-			wp_send_json_error( 'Missing parameters.' );
+			wp_send_json_error( __( 'Missing required parameters.', 'wp-news-collector' ) );
 		}
 
-		$id = intval( $_POST['id'] );
+		$id = intval( wp_unslash( $_POST['id'] ) );
 		$title = sanitize_text_field( wp_unslash( $_POST['title'] ) );
 		$description = wp_kses_post( wp_unslash( $_POST['description'] ) );
 
@@ -143,7 +143,7 @@ class WPNC_Ajax {
 			array( 'id' => $id )
 		);
 
-		wp_send_json_success( array( 'message' => 'Updated successfully.' ) );
+		wp_send_json_success( array( 'message' => __( 'Item updated successfully.', 'wp-news-collector' ) ) );
 	}
 
 	/**
@@ -152,11 +152,11 @@ class WPNC_Ajax {
 	public function bulk_approve() {
 		check_ajax_referer( 'wpnc_admin_nonce', 'nonce' );
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( 'Unauthorized.' );
+			wp_send_json_error( __( 'Unauthorized access.', 'wp-news-collector' ) );
 		}
 
-		if ( ! isset( $_POST['ids'] ) || ! is_array( $_POST['ids'] ) ) {
-			wp_send_json_error( 'No IDs provided.' );
+		if ( ! isset( $_POST['ids'] ) || ! is_array( wp_unslash( $_POST['ids'] ) ) ) {
+			wp_send_json_error( __( 'No valid IDs provided.', 'wp-news-collector' ) );
 		}
 
 		global $wpdb;
@@ -165,7 +165,9 @@ class WPNC_Ajax {
 		$post_type = get_option( 'wpnc_target_post_type', 'post' );
 		$success_count = 0;
 
-		foreach ( $_POST['ids'] as $id ) {
+		$posted_ids = wp_unslash( $_POST['ids'] );
+
+		foreach ( $posted_ids as $id ) {
 			$id = intval( $id );
 			$item = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table_name WHERE id = %d AND status = 'pending'", $id ) );
 
@@ -189,7 +191,7 @@ class WPNC_Ajax {
 			}
 		}
 
-		wp_send_json_success( array( 'message' => sprintf( '%d items approved.', $success_count ) ) );
+		wp_send_json_success( array( 'message' => sprintf( __( '%d items approved and published successfully.', 'wp-news-collector' ), $success_count ) ) );
 	}
 
 	/**
@@ -198,21 +200,25 @@ class WPNC_Ajax {
 	public function bulk_reject() {
 		check_ajax_referer( 'wpnc_admin_nonce', 'nonce' );
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( 'Unauthorized.' );
+			wp_send_json_error( __( 'Unauthorized access.', 'wp-news-collector' ) );
 		}
 
-		if ( ! isset( $_POST['ids'] ) || ! is_array( $_POST['ids'] ) ) {
-			wp_send_json_error( 'No IDs provided.' );
+		if ( ! isset( $_POST['ids'] ) || ! is_array( wp_unslash( $_POST['ids'] ) ) ) {
+			wp_send_json_error( __( 'No valid IDs provided.', 'wp-news-collector' ) );
 		}
 
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'news_queue';
-		$ids = array_map( 'intval', $_POST['ids'] );
+
+		$posted_ids = wp_unslash( $_POST['ids'] );
+		$ids = array_map( 'intval', $posted_ids );
 		$ids_list = implode( ',', $ids );
 
-		$wpdb->query( "UPDATE $table_name SET status = 'rejected' WHERE id IN ($ids_list)" );
+		if ( ! empty( $ids_list ) ) {
+			$wpdb->query( "UPDATE $table_name SET status = 'rejected' WHERE id IN ($ids_list)" );
+		}
 
-		wp_send_json_success( array( 'message' => 'Items rejected.' ) );
+		wp_send_json_success( array( 'message' => __( 'Selected items rejected successfully.', 'wp-news-collector' ) ) );
 	}
 
 	/**
@@ -221,7 +227,7 @@ class WPNC_Ajax {
 	public function get_stats() {
 		check_ajax_referer( 'wpnc_admin_nonce', 'nonce' );
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( 'Unauthorized.' );
+			wp_send_json_error( __( 'Unauthorized access.', 'wp-news-collector' ) );
 		}
 
 		global $wpdb;
@@ -242,9 +248,9 @@ class WPNC_Ajax {
 	public function load_more_news() {
 		check_ajax_referer( 'wpnc_frontend_nonce', 'nonce' );
 
-		$page = isset( $_POST['page'] ) ? intval( $_POST['page'] ) : 1;
-		$limit = isset( $_POST['limit'] ) ? intval( $_POST['limit'] ) : 10;
-		$category = isset( $_POST['category'] ) ? sanitize_text_field( $_POST['category'] ) : '';
+		$page = isset( $_POST['page'] ) ? intval( wp_unslash( $_POST['page'] ) ) : 1;
+		$limit = isset( $_POST['limit'] ) ? intval( wp_unslash( $_POST['limit'] ) ) : 10;
+		$category = isset( $_POST['category'] ) ? sanitize_text_field( wp_unslash( $_POST['category'] ) ) : '';
 
 		$post_type = get_option( 'wpnc_target_post_type', 'post' );
 
@@ -281,7 +287,7 @@ class WPNC_Ajax {
 			$html = ob_get_clean();
 			wp_send_json_success( array( 'html' => $html ) );
 		} else {
-			wp_send_json_error( 'No more posts' );
+			wp_send_json_error( __( 'No more posts available.', 'wp-news-collector' ) );
 		}
 	}
 }

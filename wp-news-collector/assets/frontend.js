@@ -1,4 +1,6 @@
 jQuery(document).ready(function($) {
+    'use strict';
+
     $('.wpnc-load-more-btn').on('click', function() {
         var button = $(this);
         var page = parseInt(button.attr('data-page'));
@@ -8,7 +10,7 @@ jQuery(document).ready(function($) {
 
         var nextPage = page + 1;
 
-        button.text('Loading...');
+        button.text(wpnc_frontend_ajax.i18n.loading);
         button.prop('disabled', true);
 
         $.post(wpnc_frontend_ajax.ajax_url, {
@@ -25,11 +27,11 @@ jQuery(document).ready(function($) {
                 if (nextPage >= maxPages) {
                     button.parent().remove();
                 } else {
-                    button.text('Load More News');
+                    button.text(wpnc_frontend_ajax.i18n.load_more);
                     button.prop('disabled', false);
                 }
             } else {
-                button.text('No more news');
+                button.text(wpnc_frontend_ajax.i18n.no_more);
             }
         });
     });
