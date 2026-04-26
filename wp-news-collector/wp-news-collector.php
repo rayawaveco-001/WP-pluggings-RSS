@@ -22,6 +22,7 @@ define( 'WPNC_PLUGIN_FILE', __FILE__ );
 
 // Include required files
 require_once WPNC_PLUGIN_DIR . 'includes/class-db.php';
+require_once WPNC_PLUGIN_DIR . 'includes/class-cpt.php';
 require_once WPNC_PLUGIN_DIR . 'includes/class-fetcher.php';
 
 if ( is_admin() ) {
@@ -45,7 +46,8 @@ function wpnc_enqueue_admin_assets( $hook ) {
 	}
 
 	wp_enqueue_style( 'wpnc-admin-style', WPNC_PLUGIN_URL . 'assets/admin.css', array(), WPNC_VERSION );
-	wp_enqueue_script( 'wpnc-admin-script', WPNC_PLUGIN_URL . 'assets/admin.js', array( 'jquery' ), WPNC_VERSION, true );
+	wp_enqueue_script( 'wpnc-chart-js', 'https://cdn.jsdelivr.net/npm/chart.js', array(), '3.9.1', true );
+	wp_enqueue_script( 'wpnc-admin-script', WPNC_PLUGIN_URL . 'assets/admin.js', array( 'jquery', 'wpnc-chart-js' ), WPNC_VERSION, true );
 
 	wp_localize_script( 'wpnc-admin-script', 'wpnc_ajax', array(
 		'ajax_url' => admin_url( 'admin-ajax.php' ),

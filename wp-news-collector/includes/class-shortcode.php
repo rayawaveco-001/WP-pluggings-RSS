@@ -29,8 +29,10 @@ class WPNC_Shortcode {
 			'news_bulletin'
 		);
 
+		$post_type = get_option( 'wpnc_target_post_type', 'post' );
+
 		$args = array(
-			'post_type'      => 'post',
+			'post_type'      => $post_type,
 			'posts_per_page' => intval( $atts['limit'] ),
 			'post_status'    => 'publish',
 		);

@@ -69,6 +69,8 @@ class WPNC_Fetcher {
 
 		$links = array_filter( array_map( 'trim', explode( "\n", $rss_links_text ) ) );
 		$auto_publish = get_option( 'wpnc_auto_publish', 0 );
+		$extract_full_text = get_option( 'wpnc_extract_full_text', 0 );
+		$target_post_type = get_option( 'wpnc_target_post_type', 'post' );
 		$include_words = array_filter( array_map( 'trim', explode( ',', get_option( 'wpnc_include_words', '' ) ) ) );
 		$exclude_words = array_filter( array_map( 'trim', explode( ',', get_option( 'wpnc_exclude_words', '' ) ) ) );
 
@@ -146,17 +148,27 @@ class WPNC_Fetcher {
 
 				$image_url = $this->extract_image( $item, $main_link );
 
-				// AI Rewrite
+				if ( $extract_full_text ) {
+					$full_text = $this->extract_full_text( $main_link );
+					if ( ! empty( $full_text ) ) {
+						$desc = $full_text; // Override description with full text
+					}
+				}
+
+				$tags = '';
+
+				// AI Rewrite & Tagging
 				if ( get_option( 'wpnc_auto_rewrite', 0 ) && get_option( 'wpnc_openai_api_key', '' ) ) {
 					$rewritten = $this->rewrite_with_ai( $title, $desc );
 					if ( $rewritten ) {
 						$title = $rewritten['title'];
 						$desc = $rewritten['description'];
+						$tags = $rewritten['tags'];
 					}
 				}
 
 				if ( $auto_publish ) {
-					$this->publish_post( $title, $desc, $main_link, $source_name, $image_url, $pub_date, $category_id );
+					$this->publish_post( $title, $desc, $main_link, $source_name, $image_url, $pub_date, $category_id, $tags, $target_post_type );
 				} else {
 					$inserted = $wpdb->insert(
 						$table_name,
@@ -169,8 +181,9 @@ class WPNC_Fetcher {
 							'pub_date'    => $pub_date,
 							'status'      => 'pending',
 							'category_id' => $category_id,
+							'tags'        => $tags,
 						),
-						array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d' )
+						array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s' )
 					);
 					if ( $inserted ) {
 						$new_queue_items_count++;
@@ -202,7 +215,10 @@ class WPNC_Fetcher {
 		$api_key = get_option( 'wpnc_openai_api_key', '' );
 		if ( empty( $api_key ) ) return false;
 
-		$prompt = "Rewrite the following news title and description to be unique and SEO friendly, preserving the main facts. Return ONLY a JSON object with two keys: 'title' and 'description'. Do not wrap the JSON in markdown code blocks. \n\nOriginal Title: " . wp_strip_all_tags( $title ) . "\nOriginal Description: " . wp_strip_all_tags( $description );
+		$target_language = get_option( 'wpnc_target_language', '' );
+		$translation_prompt = ! empty( $target_language ) ? " Translate it into {$target_language}." : "";
+
+		$prompt = "Rewrite the following news title and description to be unique, SEO friendly, and preserve the main facts.{$translation_prompt} Also, extract up to 5 relevant SEO tags as a comma-separated string. Return ONLY a valid JSON object with exactly three keys: 'title', 'description', and 'tags'. Do not wrap the JSON in markdown code blocks. \n\nOriginal Title: " . wp_strip_all_tags( $title ) . "\nOriginal Description: " . wp_strip_all_tags( $description );
 
 		$args = array(
 			'headers' => array(
@@ -236,13 +252,48 @@ class WPNC_Fetcher {
 			$parsed = json_decode( $json_str, true );
 			if ( isset( $parsed['title'] ) && isset( $parsed['description'] ) ) {
 				return array(
-					'title' => sanitize_text_field( $parsed['title'] ),
+					'title'       => sanitize_text_field( $parsed['title'] ),
 					'description' => wp_kses_post( $parsed['description'] ),
+					'tags'        => isset( $parsed['tags'] ) ? sanitize_text_field( $parsed['tags'] ) : '',
 				);
 			}
 		}
 
 		return false;
+	}
+
+	/**
+	 * Extract Full Text by scraping <p> tags from the target URL.
+	 */
+	private function extract_full_text( $url ) {
+		$response = wp_remote_get( $url );
+		if ( is_wp_error( $response ) || wp_remote_retrieve_response_code( $response ) !== 200 ) {
+			return '';
+		}
+
+		$html = wp_remote_retrieve_body( $response );
+		if ( empty( $html ) ) return '';
+
+		libxml_use_internal_errors( true );
+		$doc = new DOMDocument();
+		$doc->loadHTML( $html );
+		libxml_clear_errors();
+
+		$xpath = new DOMXPath( $doc );
+		// Scrape content typically found in article bodies
+		$paragraphs = $xpath->query( '//article//p | //main//p | //div[contains(@class, "content")]//p' );
+
+		$content = '';
+		if ( $paragraphs->length > 0 ) {
+			foreach ( $paragraphs as $p ) {
+				$text = trim( $p->nodeValue );
+				if ( strlen( $text ) > 50 ) { // Avoid tiny menu items/footer links
+					$content .= '<p>' . esc_html( $text ) . '</p>';
+				}
+			}
+		}
+
+		return $content;
 	}
 
 	/**
@@ -282,7 +333,7 @@ class WPNC_Fetcher {
 	/**
 	 * Publish post directly.
 	 */
-	public function publish_post( $title, $description, $main_link, $source_name, $image_url, $pub_date, $category_id = 0 ) {
+	public function publish_post( $title, $description, $main_link, $source_name, $image_url, $pub_date, $category_id = 0, $tags = '', $post_type = 'post' ) {
 		$default_category = get_option( 'wpnc_default_category', 0 );
 		$cat_id = $category_id ? $category_id : $default_category;
 
@@ -295,11 +346,16 @@ class WPNC_Fetcher {
 			'post_author'   => 1,
 			'post_date'     => $pub_date,
 			'post_category' => $cat_id ? array( $cat_id ) : array(),
+			'post_type'     => $post_type,
 		);
 
 		$post_id = wp_insert_post( $post_data );
 
 		if ( $post_id && ! is_wp_error( $post_id ) ) {
+			if ( ! empty( $tags ) ) {
+				wp_set_post_tags( $post_id, $tags, true );
+			}
+
 			if ( empty( $image_url ) ) {
 				$image_url = get_option( 'wpnc_default_image', '' );
 			}

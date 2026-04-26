@@ -18,6 +18,10 @@ class WPNC_Ajax {
 		add_action( 'wp_ajax_wpnc_reject_item', array( $this, 'reject_item' ) );
 		add_action( 'wp_ajax_wpnc_edit_item', array( $this, 'edit_item' ) );
 
+		add_action( 'wp_ajax_wpnc_bulk_approve', array( $this, 'bulk_approve' ) );
+		add_action( 'wp_ajax_wpnc_bulk_reject', array( $this, 'bulk_reject' ) );
+		add_action( 'wp_ajax_wpnc_get_stats', array( $this, 'get_stats' ) );
+
 		add_action( 'wp_ajax_wpnc_load_more_news', array( $this, 'load_more_news' ) );
 		add_action( 'wp_ajax_nopriv_wpnc_load_more_news', array( $this, 'load_more_news' ) );
 	}
@@ -65,6 +69,8 @@ class WPNC_Ajax {
 
 		// Fetcher instance is required for post publishing logic
 		$fetcher = new WPNC_Fetcher();
+		$post_type = get_option( 'wpnc_target_post_type', 'post' );
+
 		$post_id = $fetcher->publish_post(
 			$item->title,
 			$item->description,
@@ -72,7 +78,9 @@ class WPNC_Ajax {
 			$item->source_name,
 			$item->image_url,
 			$item->pub_date,
-			isset( $item->category_id ) ? $item->category_id : 0
+			isset( $item->category_id ) ? $item->category_id : 0,
+			isset( $item->tags ) ? $item->tags : '',
+			$post_type
 		);
 
 		if ( ! is_wp_error( $post_id ) && $post_id ) {
@@ -139,6 +147,96 @@ class WPNC_Ajax {
 	}
 
 	/**
+	 * Bulk approve items.
+	 */
+	public function bulk_approve() {
+		check_ajax_referer( 'wpnc_admin_nonce', 'nonce' );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( 'Unauthorized.' );
+		}
+
+		if ( ! isset( $_POST['ids'] ) || ! is_array( $_POST['ids'] ) ) {
+			wp_send_json_error( 'No IDs provided.' );
+		}
+
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'news_queue';
+		$fetcher = new WPNC_Fetcher();
+		$post_type = get_option( 'wpnc_target_post_type', 'post' );
+		$success_count = 0;
+
+		foreach ( $_POST['ids'] as $id ) {
+			$id = intval( $id );
+			$item = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table_name WHERE id = %d AND status = 'pending'", $id ) );
+
+			if ( $item ) {
+				$post_id = $fetcher->publish_post(
+					$item->title,
+					$item->description,
+					$item->main_link,
+					$item->source_name,
+					$item->image_url,
+					$item->pub_date,
+					isset( $item->category_id ) ? $item->category_id : 0,
+					isset( $item->tags ) ? $item->tags : '',
+					$post_type
+				);
+
+				if ( ! is_wp_error( $post_id ) && $post_id ) {
+					$wpdb->update( $table_name, array( 'status' => 'approved' ), array( 'id' => $id ) );
+					$success_count++;
+				}
+			}
+		}
+
+		wp_send_json_success( array( 'message' => sprintf( '%d items approved.', $success_count ) ) );
+	}
+
+	/**
+	 * Bulk reject items.
+	 */
+	public function bulk_reject() {
+		check_ajax_referer( 'wpnc_admin_nonce', 'nonce' );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( 'Unauthorized.' );
+		}
+
+		if ( ! isset( $_POST['ids'] ) || ! is_array( $_POST['ids'] ) ) {
+			wp_send_json_error( 'No IDs provided.' );
+		}
+
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'news_queue';
+		$ids = array_map( 'intval', $_POST['ids'] );
+		$ids_list = implode( ',', $ids );
+
+		$wpdb->query( "UPDATE $table_name SET status = 'rejected' WHERE id IN ($ids_list)" );
+
+		wp_send_json_success( array( 'message' => 'Items rejected.' ) );
+	}
+
+	/**
+	 * Get stats for Chart.js.
+	 */
+	public function get_stats() {
+		check_ajax_referer( 'wpnc_admin_nonce', 'nonce' );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( 'Unauthorized.' );
+		}
+
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'news_queue';
+
+		$stats = array(
+			'approved' => intval( $wpdb->get_var( "SELECT COUNT(id) FROM $table_name WHERE status = 'approved'" ) ),
+			'pending'  => intval( $wpdb->get_var( "SELECT COUNT(id) FROM $table_name WHERE status = 'pending'" ) ),
+			'rejected' => intval( $wpdb->get_var( "SELECT COUNT(id) FROM $table_name WHERE status = 'rejected'" ) ),
+		);
+
+		wp_send_json_success( $stats );
+	}
+
+	/**
 	 * Load More News for frontend shortcode.
 	 */
 	public function load_more_news() {
@@ -148,8 +246,10 @@ class WPNC_Ajax {
 		$limit = isset( $_POST['limit'] ) ? intval( $_POST['limit'] ) : 10;
 		$category = isset( $_POST['category'] ) ? sanitize_text_field( $_POST['category'] ) : '';
 
+		$post_type = get_option( 'wpnc_target_post_type', 'post' );
+
 		$args = array(
-			'post_type'      => 'post',
+			'post_type'      => $post_type,
 			'posts_per_page' => $limit,
 			'post_status'    => 'publish',
 			'paged'          => $page,

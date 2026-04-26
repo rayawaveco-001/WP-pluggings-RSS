@@ -25,15 +25,27 @@ jQuery(document).ready(function($) {
             return;
         }
 
-        let html = '<div class="wpnc-grid">';
+        let html = `
+            <div class="wpnc-bulk-actions">
+                <label><input type="checkbox" id="wpnc-select-all"> Select All</label>
+                <button class="button button-primary" id="wpnc-bulk-approve">Approve Selected</button>
+                <button class="button" id="wpnc-bulk-reject">Reject Selected</button>
+            </div>
+            <div class="wpnc-grid">
+        `;
         items.forEach(function(item) {
             let img = item.image_url ? `<img src="${item.image_url}" alt="Thumbnail">` : '<div class="wpnc-no-img">No Image</div>';
+            let tagsHtml = item.tags ? `<p style="font-size:11px; color:#999; margin:0 0 10px 0;">Tags: ${item.tags}</p>` : '';
             html += `
                 <div class="wpnc-card" id="wpnc-item-${item.id}">
+                    <div class="wpnc-card-header">
+                        <input type="checkbox" class="wpnc-item-checkbox" value="${item.id}">
+                    </div>
                     ${img}
                     <div class="wpnc-card-content">
                         <h4>${item.title}</h4>
                         <p class="wpnc-source">${item.source_name}</p>
+                        ${tagsHtml}
                         <div class="wpnc-actions">
                             <button class="button button-primary wpnc-approve" data-id="${item.id}">Approve</button>
                             <button class="button wpnc-edit" data-id="${item.id}" data-title="${encodeURIComponent(item.title)}" data-desc="${encodeURIComponent(item.description)}">Edit</button>
@@ -137,7 +149,89 @@ jQuery(document).ready(function($) {
                 }
             });
         });
+
+        // Bulk Actions
+        $('#wpnc-select-all').on('change', function() {
+            $('.wpnc-item-checkbox').prop('checked', $(this).prop('checked'));
+        });
+
+        $('#wpnc-bulk-approve').on('click', function() {
+            let ids = [];
+            $('.wpnc-item-checkbox:checked').each(function() {
+                ids.push($(this).val());
+            });
+
+            if (ids.length === 0) return;
+
+            $(this).text('Processing...').prop('disabled', true);
+            $.post(wpnc_ajax.ajax_url, {
+                action: 'wpnc_bulk_approve',
+                ids: ids,
+                nonce: wpnc_ajax.nonce
+            }, function(response) {
+                if (response.success) {
+                    loadQueue();
+                } else {
+                    alert('Error during bulk approve.');
+                }
+            });
+        });
+
+        $('#wpnc-bulk-reject').on('click', function() {
+            let ids = [];
+            $('.wpnc-item-checkbox:checked').each(function() {
+                ids.push($(this).val());
+            });
+
+            if (ids.length === 0) return;
+
+            $(this).text('Processing...').prop('disabled', true);
+            $.post(wpnc_ajax.ajax_url, {
+                action: 'wpnc_bulk_reject',
+                ids: ids,
+                nonce: wpnc_ajax.nonce
+            }, function(response) {
+                if (response.success) {
+                    loadQueue();
+                } else {
+                    alert('Error during bulk reject.');
+                }
+            });
+        });
+    }
+
+    // Chart.js initialization for Logs tab
+    function loadStatsChart() {
+        if ($('#wpnc-stats-chart').length === 0 || typeof Chart === 'undefined') return;
+
+        $.post(wpnc_ajax.ajax_url, {
+            action: 'wpnc_get_stats',
+            nonce: wpnc_ajax.nonce
+        }, function(response) {
+            if (response.success) {
+                let ctx = document.getElementById('wpnc-stats-chart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Approved', 'Pending', 'Rejected'],
+                        datasets: [{
+                            data: [response.data.approved, response.data.pending, response.data.rejected],
+                            backgroundColor: ['#46b450', '#ffb900', '#dc3232']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                            }
+                        }
+                    }
+                });
+            }
+        });
     }
 
     loadQueue();
+    loadStatsChart();
 }));

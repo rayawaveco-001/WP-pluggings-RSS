@@ -43,6 +43,7 @@ class WPNC_DB {
 			pub_date datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
 			status varchar(50) DEFAULT 'pending' NOT NULL,
 			category_id int(11) DEFAULT 0 NOT NULL,
+			tags varchar(255) DEFAULT '' NOT NULL,
 			PRIMARY KEY  (id),
 			UNIQUE KEY main_link (main_link(191))
 		) $charset_collate;";

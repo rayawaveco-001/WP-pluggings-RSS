@@ -38,15 +38,18 @@ class WPNC_Admin {
 	public function register_settings() {
 		register_setting( 'wpnc_settings_group', 'wpnc_rss_links', 'sanitize_textarea_field' );
 		register_setting( 'wpnc_settings_group', 'wpnc_interval', 'sanitize_text_field' );
+		register_setting( 'wpnc_settings_group', 'wpnc_target_post_type', 'sanitize_text_field' );
 		register_setting( 'wpnc_settings_group', 'wpnc_default_category', 'absint' );
 		register_setting( 'wpnc_settings_group', 'wpnc_auto_publish', 'absint' );
 		register_setting( 'wpnc_settings_group', 'wpnc_default_image', 'esc_url_raw' );
+		register_setting( 'wpnc_settings_group', 'wpnc_extract_full_text', 'absint' );
 		register_setting( 'wpnc_settings_group', 'wpnc_include_words', 'sanitize_text_field' );
 		register_setting( 'wpnc_settings_group', 'wpnc_exclude_words', 'sanitize_text_field' );
 
 		// AI Settings
 		register_setting( 'wpnc_settings_group', 'wpnc_openai_api_key', 'sanitize_text_field' );
 		register_setting( 'wpnc_settings_group', 'wpnc_auto_rewrite', 'absint' );
+		register_setting( 'wpnc_settings_group', 'wpnc_target_language', 'sanitize_text_field' );
 
 		// Telegram
 		register_setting( 'wpnc_settings_group', 'wpnc_telegram_token', 'sanitize_text_field' );
@@ -121,6 +124,16 @@ class WPNC_Admin {
 					</td>
 				</tr>
 				<tr valign="top">
+					<th scope="row"><?php esc_html_e( 'Target Post Type', 'wp-news-collector' ); ?></th>
+					<td>
+						<?php $target_pt = get_option( 'wpnc_target_post_type', 'post' ); ?>
+						<select name="wpnc_target_post_type">
+							<option value="post" <?php selected( $target_pt, 'post' ); ?>><?php esc_html_e( 'Standard Post', 'wp-news-collector' ); ?></option>
+							<option value="wpnc_news" <?php selected( $target_pt, 'wpnc_news' ); ?>><?php esc_html_e( 'News (Custom Post Type)', 'wp-news-collector' ); ?></option>
+						</select>
+					</td>
+				</tr>
+				<tr valign="top">
 					<th scope="row"><?php esc_html_e( 'Default Category', 'wp-news-collector' ); ?></th>
 					<td>
 						<?php
@@ -162,6 +175,13 @@ class WPNC_Admin {
 						<p class="description"><?php esc_html_e( 'Skip news that contain any of these words.', 'wp-news-collector' ); ?></p>
 					</td>
 				</tr>
+				<tr valign="top">
+					<th scope="row"><?php esc_html_e( 'Extract Full Text', 'wp-news-collector' ); ?></th>
+					<td>
+						<input type="checkbox" name="wpnc_extract_full_text" value="1" <?php checked( get_option( 'wpnc_extract_full_text', 0 ), 1 ); ?> />
+						<label for="wpnc_extract_full_text"><?php esc_html_e( 'Attempt to scrape the full article content from the source URL (Note: May slow down fetching).', 'wp-news-collector' ); ?></label>
+					</td>
+				</tr>
 			</table>
 
 			<hr>
@@ -177,7 +197,14 @@ class WPNC_Admin {
 					<th scope="row"><?php esc_html_e( 'Auto-Rewrite News', 'wp-news-collector' ); ?></th>
 					<td>
 						<input type="checkbox" name="wpnc_auto_rewrite" value="1" <?php checked( get_option( 'wpnc_auto_rewrite', 0 ), 1 ); ?> />
-						<label for="wpnc_auto_rewrite"><?php esc_html_e( 'Rewrite title and description using AI before placing in queue.', 'wp-news-collector' ); ?></label>
+						<label for="wpnc_auto_rewrite"><?php esc_html_e( 'Rewrite title, description, and auto-generate Tags using AI before placing in queue.', 'wp-news-collector' ); ?></label>
+					</td>
+				</tr>
+				<tr valign="top">
+					<th scope="row"><?php esc_html_e( 'Target Language', 'wp-news-collector' ); ?></th>
+					<td>
+						<input type="text" name="wpnc_target_language" value="<?php echo esc_attr( get_option( 'wpnc_target_language', '' ) ); ?>" class="regular-text" />
+						<p class="description"><?php esc_html_e( 'Leave empty to keep original. Example: "Persian", "Spanish". Requires OpenAI API key.', 'wp-news-collector' ); ?></p>
 					</td>
 				</tr>
 			</table>
@@ -233,6 +260,9 @@ class WPNC_Admin {
 		echo '<h3>' . esc_html__( 'Last Run Details', 'wp-news-collector' ) . '</h3>';
 		echo '<p>' . esc_html__( 'Last Update:', 'wp-news-collector' ) . ' <strong>' . esc_html( $last_run ) . '</strong></p>';
 		echo '<p>' . esc_html__( 'Items Fetched:', 'wp-news-collector' ) . ' <strong>' . intval( $last_count ) . '</strong></p>';
+		echo '<hr>';
+		echo '<h3>' . esc_html__( 'Queue Statistics', 'wp-news-collector' ) . '</h3>';
+		echo '<div style="max-width: 600px;"><canvas id="wpnc-stats-chart"></canvas></div>';
 	}
 }
 
