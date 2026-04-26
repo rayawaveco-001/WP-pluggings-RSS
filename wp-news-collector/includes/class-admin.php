@@ -40,6 +40,9 @@ class WPNC_Admin {
 		register_setting( 'wpnc_settings_group', 'wpnc_interval', 'sanitize_text_field' );
 		register_setting( 'wpnc_settings_group', 'wpnc_default_category', 'absint' );
 		register_setting( 'wpnc_settings_group', 'wpnc_auto_publish', 'absint' );
+		register_setting( 'wpnc_settings_group', 'wpnc_default_image', 'esc_url_raw' );
+		register_setting( 'wpnc_settings_group', 'wpnc_include_words', 'sanitize_text_field' );
+		register_setting( 'wpnc_settings_group', 'wpnc_exclude_words', 'sanitize_text_field' );
 	}
 
 	/**
@@ -91,6 +94,7 @@ class WPNC_Admin {
 					<th scope="row"><?php esc_html_e( 'RSS Links (One per line)', 'wp-news-collector' ); ?></th>
 					<td>
 						<textarea name="wpnc_rss_links" rows="10" cols="50" class="large-text code"><?php echo esc_textarea( get_option( 'wpnc_rss_links', '' ) ); ?></textarea>
+						<p class="description"><?php esc_html_e( 'Format: https://example.com/feed or https://example.com/feed|category_id', 'wp-news-collector' ); ?></p>
 					</td>
 				</tr>
 				<tr valign="top">
@@ -124,6 +128,27 @@ class WPNC_Admin {
 					<td>
 						<input type="checkbox" name="wpnc_auto_publish" value="1" <?php checked( get_option( 'wpnc_auto_publish', 0 ), 1 ); ?> />
 						<label for="wpnc_auto_publish"><?php esc_html_e( 'Publish directly without moderation queue', 'wp-news-collector' ); ?></label>
+					</td>
+				</tr>
+				<tr valign="top">
+					<th scope="row"><?php esc_html_e( 'Default Fallback Image URL', 'wp-news-collector' ); ?></th>
+					<td>
+						<input type="url" name="wpnc_default_image" value="<?php echo esc_url( get_option( 'wpnc_default_image', '' ) ); ?>" class="large-text" />
+						<p class="description"><?php esc_html_e( 'URL of the image to use if the RSS feed has no image.', 'wp-news-collector' ); ?></p>
+					</td>
+				</tr>
+				<tr valign="top">
+					<th scope="row"><?php esc_html_e( 'Must Include Words (Comma separated)', 'wp-news-collector' ); ?></th>
+					<td>
+						<input type="text" name="wpnc_include_words" value="<?php echo esc_attr( get_option( 'wpnc_include_words', '' ) ); ?>" class="large-text" />
+						<p class="description"><?php esc_html_e( 'Only fetch news that contain at least one of these words in the title or description. Leave empty to disable.', 'wp-news-collector' ); ?></p>
+					</td>
+				</tr>
+				<tr valign="top">
+					<th scope="row"><?php esc_html_e( 'Exclude Words (Comma separated)', 'wp-news-collector' ); ?></th>
+					<td>
+						<input type="text" name="wpnc_exclude_words" value="<?php echo esc_attr( get_option( 'wpnc_exclude_words', '' ) ); ?>" class="large-text" />
+						<p class="description"><?php esc_html_e( 'Skip news that contain any of these words.', 'wp-news-collector' ); ?></p>
 					</td>
 				</tr>
 			</table>

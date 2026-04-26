@@ -69,6 +69,9 @@ class WPNC_Fetcher {
 
 		$links = array_filter( array_map( 'trim', explode( "\n", $rss_links_text ) ) );
 		$auto_publish = get_option( 'wpnc_auto_publish', 0 );
+		$include_words = array_filter( array_map( 'trim', explode( ',', get_option( 'wpnc_include_words', '' ) ) ) );
+		$exclude_words = array_filter( array_map( 'trim', explode( ',', get_option( 'wpnc_exclude_words', '' ) ) ) );
+
 		$total_fetched = 0;
 
 		require_once ABSPATH . WPINC . '/feed.php';
@@ -76,7 +79,11 @@ class WPNC_Fetcher {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'news_queue';
 
-		foreach ( $links as $link ) {
+		foreach ( $links as $link_raw ) {
+			$parts = explode( '|', $link_raw );
+			$link = trim( $parts[0] );
+			$category_id = isset( $parts[1] ) ? intval( trim( $parts[1] ) ) : 0;
+
 			$feed = fetch_feed( $link );
 			if ( is_wp_error( $feed ) ) {
 				continue;
@@ -95,6 +102,35 @@ class WPNC_Fetcher {
 					$pub_date = current_time( 'mysql' );
 				}
 
+				// Filtering Logic
+				$content_to_check = mb_strtolower( $title . ' ' . wp_strip_all_tags( $desc ) );
+
+				// Exclude check
+				$skip = false;
+				foreach ( $exclude_words as $word ) {
+					if ( mb_strpos( $content_to_check, mb_strtolower( $word ) ) !== false ) {
+						$skip = true;
+						break;
+					}
+				}
+				if ( $skip ) {
+					continue;
+				}
+
+				// Include check
+				if ( ! empty( $include_words ) ) {
+					$matched = false;
+					foreach ( $include_words as $word ) {
+						if ( mb_strpos( $content_to_check, mb_strtolower( $word ) ) !== false ) {
+							$matched = true;
+							break;
+						}
+					}
+					if ( ! $matched ) {
+						continue;
+					}
+				}
+
 				// Check duplicates
 				$exists_queue = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $table_name WHERE main_link = %s", $main_link ) );
 				if ( $exists_queue ) {
@@ -110,7 +146,7 @@ class WPNC_Fetcher {
 				$image_url = $this->extract_image( $item, $main_link );
 
 				if ( $auto_publish ) {
-					$this->publish_post( $title, $desc, $main_link, $source_name, $image_url, $pub_date );
+					$this->publish_post( $title, $desc, $main_link, $source_name, $image_url, $pub_date, $category_id );
 				} else {
 					$wpdb->insert(
 						$table_name,
@@ -122,8 +158,9 @@ class WPNC_Fetcher {
 							'image_url'   => $image_url,
 							'pub_date'    => $pub_date,
 							'status'      => 'pending',
+							'category_id' => $category_id,
 						),
-						array( '%s', '%s', '%s', '%s', '%s', '%s', '%s' )
+						array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d' )
 					);
 				}
 				$total_fetched++;
@@ -171,8 +208,10 @@ class WPNC_Fetcher {
 	/**
 	 * Publish post directly.
 	 */
-	public function publish_post( $title, $description, $main_link, $source_name, $image_url, $pub_date ) {
+	public function publish_post( $title, $description, $main_link, $source_name, $image_url, $pub_date, $category_id = 0 ) {
 		$default_category = get_option( 'wpnc_default_category', 0 );
+		$cat_id = $category_id ? $category_id : $default_category;
+
 		$content = $description . "\n\n" . sprintf( 'منبع: <a href="%s" target="_blank" rel="nofollow">%s</a>', esc_url( $main_link ), esc_html( $source_name ) );
 
 		$post_data = array(
@@ -181,14 +220,28 @@ class WPNC_Fetcher {
 			'post_status'   => 'publish',
 			'post_author'   => 1,
 			'post_date'     => $pub_date,
-			'post_category' => $default_category ? array( $default_category ) : array(),
+			'post_category' => $cat_id ? array( $cat_id ) : array(),
 		);
 
 		$post_id = wp_insert_post( $post_data );
 
-		// Optional: attach image to post as thumbnail
-		if ( $post_id && ! is_wp_error( $post_id ) && ! empty( $image_url ) ) {
-			add_post_meta( $post_id, 'wpnc_source_image', $image_url ); // Save original URL just in case
+		if ( $post_id && ! is_wp_error( $post_id ) ) {
+			if ( empty( $image_url ) ) {
+				$image_url = get_option( 'wpnc_default_image', '' );
+			}
+
+			if ( ! empty( $image_url ) ) {
+				require_once ABSPATH . 'wp-admin/includes/media.php';
+				require_once ABSPATH . 'wp-admin/includes/file.php';
+				require_once ABSPATH . 'wp-admin/includes/image.php';
+
+				$attachment_id = media_sideload_image( $image_url, $post_id, $title, 'id' );
+				if ( ! is_wp_error( $attachment_id ) ) {
+					set_post_thumbnail( $post_id, $attachment_id );
+				} else {
+					add_post_meta( $post_id, 'wpnc_source_image', $image_url ); // Fallback to saving original URL
+				}
+			}
 		}
 
 		return $post_id;

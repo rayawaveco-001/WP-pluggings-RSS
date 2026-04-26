@@ -68,7 +68,8 @@ class WPNC_Ajax {
 			$item->main_link,
 			$item->source_name,
 			$item->image_url,
-			$item->pub_date
+			$item->pub_date,
+			isset( $item->category_id ) ? $item->category_id : 0
 		);
 
 		if ( ! is_wp_error( $post_id ) && $post_id ) {

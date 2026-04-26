@@ -42,6 +42,7 @@ class WPNC_DB {
 			image_url varchar(2083) DEFAULT '' NOT NULL,
 			pub_date datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
 			status varchar(50) DEFAULT 'pending' NOT NULL,
+			category_id int(11) DEFAULT 0 NOT NULL,
 			PRIMARY KEY  (id),
 			UNIQUE KEY main_link (main_link(191))
 		) $charset_collate;";
