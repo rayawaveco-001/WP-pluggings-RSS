@@ -43,6 +43,17 @@ class WPNC_Admin {
 		register_setting( 'wpnc_settings_group', 'wpnc_default_image', 'esc_url_raw' );
 		register_setting( 'wpnc_settings_group', 'wpnc_include_words', 'sanitize_text_field' );
 		register_setting( 'wpnc_settings_group', 'wpnc_exclude_words', 'sanitize_text_field' );
+
+		// AI Settings
+		register_setting( 'wpnc_settings_group', 'wpnc_openai_api_key', 'sanitize_text_field' );
+		register_setting( 'wpnc_settings_group', 'wpnc_auto_rewrite', 'absint' );
+
+		// Telegram
+		register_setting( 'wpnc_settings_group', 'wpnc_telegram_token', 'sanitize_text_field' );
+		register_setting( 'wpnc_settings_group', 'wpnc_telegram_chat_id', 'sanitize_text_field' );
+
+		// Notifications
+		register_setting( 'wpnc_settings_group', 'wpnc_admin_notify', 'absint' );
 	}
 
 	/**
@@ -149,6 +160,54 @@ class WPNC_Admin {
 					<td>
 						<input type="text" name="wpnc_exclude_words" value="<?php echo esc_attr( get_option( 'wpnc_exclude_words', '' ) ); ?>" class="large-text" />
 						<p class="description"><?php esc_html_e( 'Skip news that contain any of these words.', 'wp-news-collector' ); ?></p>
+					</td>
+				</tr>
+			</table>
+
+			<hr>
+			<h3><?php esc_html_e( 'AI Rewrite (OpenAI)', 'wp-news-collector' ); ?></h3>
+			<table class="form-table">
+				<tr valign="top">
+					<th scope="row"><?php esc_html_e( 'OpenAI API Key', 'wp-news-collector' ); ?></th>
+					<td>
+						<input type="password" name="wpnc_openai_api_key" value="<?php echo esc_attr( get_option( 'wpnc_openai_api_key', '' ) ); ?>" class="regular-text" />
+					</td>
+				</tr>
+				<tr valign="top">
+					<th scope="row"><?php esc_html_e( 'Auto-Rewrite News', 'wp-news-collector' ); ?></th>
+					<td>
+						<input type="checkbox" name="wpnc_auto_rewrite" value="1" <?php checked( get_option( 'wpnc_auto_rewrite', 0 ), 1 ); ?> />
+						<label for="wpnc_auto_rewrite"><?php esc_html_e( 'Rewrite title and description using AI before placing in queue.', 'wp-news-collector' ); ?></label>
+					</td>
+				</tr>
+			</table>
+
+			<hr>
+			<h3><?php esc_html_e( 'Telegram Auto-Post', 'wp-news-collector' ); ?></h3>
+			<table class="form-table">
+				<tr valign="top">
+					<th scope="row"><?php esc_html_e( 'Telegram Bot Token', 'wp-news-collector' ); ?></th>
+					<td>
+						<input type="text" name="wpnc_telegram_token" value="<?php echo esc_attr( get_option( 'wpnc_telegram_token', '' ) ); ?>" class="regular-text" />
+					</td>
+				</tr>
+				<tr valign="top">
+					<th scope="row"><?php esc_html_e( 'Telegram Chat ID', 'wp-news-collector' ); ?></th>
+					<td>
+						<input type="text" name="wpnc_telegram_chat_id" value="<?php echo esc_attr( get_option( 'wpnc_telegram_chat_id', '' ) ); ?>" class="regular-text" />
+						<p class="description"><?php esc_html_e( 'Channel ID (e.g., @mychannel) or Group/User Chat ID.', 'wp-news-collector' ); ?></p>
+					</td>
+				</tr>
+			</table>
+
+			<hr>
+			<h3><?php esc_html_e( 'Admin Notifications', 'wp-news-collector' ); ?></h3>
+			<table class="form-table">
+				<tr valign="top">
+					<th scope="row"><?php esc_html_e( 'Email Notifications', 'wp-news-collector' ); ?></th>
+					<td>
+						<input type="checkbox" name="wpnc_admin_notify" value="1" <?php checked( get_option( 'wpnc_admin_notify', 0 ), 1 ); ?> />
+						<label for="wpnc_admin_notify"><?php esc_html_e( 'Send me a daily email when new items are added to the Moderation Queue.', 'wp-news-collector' ); ?></label>
 					</td>
 				</tr>
 			</table>

@@ -77,6 +77,7 @@ class WPNC_Fetcher {
 		require_once ABSPATH . WPINC . '/feed.php';
 
 		global $wpdb;
+		$new_queue_items_count = 0;
 		$table_name = $wpdb->prefix . 'news_queue';
 
 		foreach ( $links as $link_raw ) {
@@ -145,10 +146,19 @@ class WPNC_Fetcher {
 
 				$image_url = $this->extract_image( $item, $main_link );
 
+				// AI Rewrite
+				if ( get_option( 'wpnc_auto_rewrite', 0 ) && get_option( 'wpnc_openai_api_key', '' ) ) {
+					$rewritten = $this->rewrite_with_ai( $title, $desc );
+					if ( $rewritten ) {
+						$title = $rewritten['title'];
+						$desc = $rewritten['description'];
+					}
+				}
+
 				if ( $auto_publish ) {
 					$this->publish_post( $title, $desc, $main_link, $source_name, $image_url, $pub_date, $category_id );
 				} else {
-					$wpdb->insert(
+					$inserted = $wpdb->insert(
 						$table_name,
 						array(
 							'source_name' => $source_name,
@@ -162,13 +172,77 @@ class WPNC_Fetcher {
 						),
 						array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d' )
 					);
+					if ( $inserted ) {
+						$new_queue_items_count++;
+					}
 				}
 				$total_fetched++;
 			}
 		}
 
+		// Admin Notifications
+		if ( $new_queue_items_count > 0 && get_option( 'wpnc_admin_notify', 0 ) ) {
+			if ( false === get_transient( 'wpnc_admin_notify_lock' ) ) {
+				$admin_email = get_option( 'admin_email' );
+				$subject = sprintf( __( '[%s] New News Items for Moderation', 'wp-news-collector' ), get_option( 'blogname' ) );
+				$message = sprintf( __( 'You have %d new news items pending in the Moderation Queue. Please log in to review them.', 'wp-news-collector' ), $new_queue_items_count );
+				wp_mail( $admin_email, $subject, $message );
+				set_transient( 'wpnc_admin_notify_lock', true, DAY_IN_SECONDS );
+			}
+		}
+
 		update_option( 'wpnc_last_run', current_time( 'mysql' ) );
 		update_option( 'wpnc_last_count', $total_fetched );
+	}
+
+	/**
+	 * Rewrite Title and Description using OpenAI API.
+	 */
+	private function rewrite_with_ai( $title, $description ) {
+		$api_key = get_option( 'wpnc_openai_api_key', '' );
+		if ( empty( $api_key ) ) return false;
+
+		$prompt = "Rewrite the following news title and description to be unique and SEO friendly, preserving the main facts. Return ONLY a JSON object with two keys: 'title' and 'description'. Do not wrap the JSON in markdown code blocks. \n\nOriginal Title: " . wp_strip_all_tags( $title ) . "\nOriginal Description: " . wp_strip_all_tags( $description );
+
+		$args = array(
+			'headers' => array(
+				'Authorization' => 'Bearer ' . $api_key,
+				'Content-Type'  => 'application/json',
+			),
+			'body' => wp_json_encode( array(
+				'model' => 'gpt-3.5-turbo',
+				'messages' => array(
+					array(
+						'role' => 'user',
+						'content' => $prompt
+					)
+				),
+				'temperature' => 0.7,
+			) ),
+			'timeout' => 30,
+		);
+
+		$response = wp_remote_post( 'https://api.openai.com/v1/chat/completions', $args );
+
+		if ( is_wp_error( $response ) || wp_remote_retrieve_response_code( $response ) !== 200 ) {
+			return false;
+		}
+
+		$body = wp_remote_retrieve_body( $response );
+		$data = json_decode( $body, true );
+
+		if ( isset( $data['choices'][0]['message']['content'] ) ) {
+			$json_str = trim( $data['choices'][0]['message']['content'] );
+			$parsed = json_decode( $json_str, true );
+			if ( isset( $parsed['title'] ) && isset( $parsed['description'] ) ) {
+				return array(
+					'title' => sanitize_text_field( $parsed['title'] ),
+					'description' => wp_kses_post( $parsed['description'] ),
+				);
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -242,6 +316,24 @@ class WPNC_Fetcher {
 					add_post_meta( $post_id, 'wpnc_source_image', $image_url ); // Fallback to saving original URL
 				}
 			}
+		}
+
+		// Telegram Automation
+		$tg_token = get_option( 'wpnc_telegram_token', '' );
+		$tg_chat_id = get_option( 'wpnc_telegram_chat_id', '' );
+
+		if ( ! empty( $tg_token ) && ! empty( $tg_chat_id ) && ! is_wp_error( $post_id ) ) {
+			$tg_message = "*" . wp_strip_all_tags( $title ) . "*\n\n" . esc_url( get_permalink( $post_id ) );
+			$tg_api_url = "https://api.telegram.org/bot{$tg_token}/sendMessage";
+
+			$tg_args = array(
+				'body' => array(
+					'chat_id'    => $tg_chat_id,
+					'text'       => $tg_message,
+					'parse_mode' => 'Markdown',
+				),
+			);
+			wp_remote_post( $tg_api_url, $tg_args );
 		}
 
 		return $post_id;

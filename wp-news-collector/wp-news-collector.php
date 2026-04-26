@@ -31,6 +31,13 @@ if ( is_admin() ) {
 
 require_once WPNC_PLUGIN_DIR . 'includes/class-shortcode.php';
 
+// Register Elementor Widget
+function wpnc_register_elementor_widget( $widgets_manager ) {
+	require_once WPNC_PLUGIN_DIR . 'includes/class-elementor-widget.php';
+	$widgets_manager->register( new \WPNC_Elementor_Widget() );
+}
+add_action( 'elementor/widgets/register', 'wpnc_register_elementor_widget' );
+
 // Enqueue Admin Assets
 function wpnc_enqueue_admin_assets( $hook ) {
 	if ( 'toplevel_page_wpnc-news-collector' !== $hook ) {
@@ -50,6 +57,11 @@ add_action( 'admin_enqueue_scripts', 'wpnc_enqueue_admin_assets' );
 // Enqueue Frontend Assets
 function wpnc_enqueue_frontend_assets() {
 	wp_enqueue_style( 'wpnc-frontend-style', WPNC_PLUGIN_URL . 'assets/frontend.css', array(), WPNC_VERSION );
+	wp_enqueue_script( 'wpnc-frontend-script', WPNC_PLUGIN_URL . 'assets/frontend.js', array( 'jquery' ), WPNC_VERSION, true );
+	wp_localize_script( 'wpnc-frontend-script', 'wpnc_frontend_ajax', array(
+		'ajax_url' => admin_url( 'admin-ajax.php' ),
+		'nonce'    => wp_create_nonce( 'wpnc_frontend_nonce' )
+	) );
 }
 add_action( 'wp_enqueue_scripts', 'wpnc_enqueue_frontend_assets' );
 

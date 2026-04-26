@@ -47,24 +47,33 @@ class WPNC_Shortcode {
 
 		ob_start();
 		?>
-		<div class="wpnc-news-list">
-			<?php
-			while ( $query->have_posts() ) {
-				$query->the_post();
-				?>
-				<div class="wpnc-news-item">
-					<h3 class="wpnc-news-title"><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h3>
-					<div class="wpnc-news-meta">
-						<span class="wpnc-news-date"><?php echo get_the_date(); ?></span>
-					</div>
-					<div class="wpnc-news-excerpt">
-						<?php the_content(); ?>
-					</div>
-				</div>
+		<div class="wpnc-news-container">
+			<div class="wpnc-news-list" id="wpnc-news-list">
 				<?php
-			}
-			wp_reset_postdata();
-			?>
+				while ( $query->have_posts() ) {
+					$query->the_post();
+					?>
+					<div class="wpnc-news-item">
+						<h3 class="wpnc-news-title"><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h3>
+						<div class="wpnc-news-meta">
+							<span class="wpnc-news-date"><?php echo get_the_date(); ?></span>
+						</div>
+						<div class="wpnc-news-excerpt">
+							<?php the_content(); ?>
+						</div>
+					</div>
+					<?php
+				}
+				wp_reset_postdata();
+				?>
+			</div>
+			<?php if ( $query->max_num_pages > 1 ) : ?>
+				<div class="wpnc-load-more-wrapper" style="text-align: center; margin-top: 20px;">
+					<button class="wpnc-load-more-btn" data-page="1" data-limit="<?php echo esc_attr( $atts['limit'] ); ?>" data-category="<?php echo esc_attr( $atts['category'] ); ?>" data-max-pages="<?php echo esc_attr( $query->max_num_pages ); ?>">
+						<?php esc_html_e( 'Load More News', 'wp-news-collector' ); ?>
+					</button>
+				</div>
+			<?php endif; ?>
 		</div>
 		<?php
 

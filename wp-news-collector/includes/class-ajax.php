@@ -17,6 +17,9 @@ class WPNC_Ajax {
 		add_action( 'wp_ajax_wpnc_approve_item', array( $this, 'approve_item' ) );
 		add_action( 'wp_ajax_wpnc_reject_item', array( $this, 'reject_item' ) );
 		add_action( 'wp_ajax_wpnc_edit_item', array( $this, 'edit_item' ) );
+
+		add_action( 'wp_ajax_wpnc_load_more_news', array( $this, 'load_more_news' ) );
+		add_action( 'wp_ajax_nopriv_wpnc_load_more_news', array( $this, 'load_more_news' ) );
 	}
 
 	/**
@@ -133,6 +136,53 @@ class WPNC_Ajax {
 		);
 
 		wp_send_json_success( array( 'message' => 'Updated successfully.' ) );
+	}
+
+	/**
+	 * Load More News for frontend shortcode.
+	 */
+	public function load_more_news() {
+		check_ajax_referer( 'wpnc_frontend_nonce', 'nonce' );
+
+		$page = isset( $_POST['page'] ) ? intval( $_POST['page'] ) : 1;
+		$limit = isset( $_POST['limit'] ) ? intval( $_POST['limit'] ) : 10;
+		$category = isset( $_POST['category'] ) ? sanitize_text_field( $_POST['category'] ) : '';
+
+		$args = array(
+			'post_type'      => 'post',
+			'posts_per_page' => $limit,
+			'post_status'    => 'publish',
+			'paged'          => $page,
+		);
+
+		if ( ! empty( $category ) ) {
+			$args['category_name'] = $category;
+		}
+
+		$query = new WP_Query( $args );
+
+		if ( $query->have_posts() ) {
+			ob_start();
+			while ( $query->have_posts() ) {
+				$query->the_post();
+				?>
+				<div class="wpnc-news-item">
+					<h3 class="wpnc-news-title"><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h3>
+					<div class="wpnc-news-meta">
+						<span class="wpnc-news-date"><?php echo get_the_date(); ?></span>
+					</div>
+					<div class="wpnc-news-excerpt">
+						<?php the_content(); ?>
+					</div>
+				</div>
+				<?php
+			}
+			wp_reset_postdata();
+			$html = ob_get_clean();
+			wp_send_json_success( array( 'html' => $html ) );
+		} else {
+			wp_send_json_error( 'No more posts' );
+		}
 	}
 }
 
