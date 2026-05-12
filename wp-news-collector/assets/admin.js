@@ -234,6 +234,38 @@ jQuery(document).ready(function($) {
         });
     }
 
+    // Force Fetch Handling
+    $('#wpnc-force-fetch-btn').on('click', function(e) {
+        e.preventDefault();
+        var btn = $(this);
+        var spinner = $('#wpnc-force-fetch-spinner');
+        var msg = $('#wpnc-force-fetch-msg');
+
+        btn.prop('disabled', true);
+        spinner.addClass('is-active');
+        msg.hide();
+
+        $.post(wpnc_ajax.ajax_url, {
+            action: 'wpnc_force_fetch',
+            nonce: wpnc_ajax.nonce
+        }, function(response) {
+            btn.prop('disabled', false);
+            spinner.removeClass('is-active');
+            msg.text(response.data.message || response.data).show();
+
+            if(response.success) {
+                msg.css('color', 'green');
+                loadStatsChart(); // refresh stats
+            } else {
+                msg.css('color', 'red');
+            }
+        }).fail(function() {
+            btn.prop('disabled', false);
+            spinner.removeClass('is-active');
+            msg.text('An error occurred during the request.').css('color', 'red').show();
+        });
+    });
+
     loadQueue();
     loadStatsChart();
 }));

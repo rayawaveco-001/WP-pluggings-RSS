@@ -59,6 +59,15 @@ class WPNC_Fetcher {
 	}
 
 	/**
+	 * Modify HTTP Request Args for fetch_feed to bypass some simple bot blockers.
+	 */
+	public function modify_http_request_args( $args, $url ) {
+		$args['user-agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+		$args['timeout'] = 20; // Increase timeout slightly for slow feeds
+		return $args;
+	}
+
+	/**
 	 * Fetch news from RSS sources.
 	 */
 	public function fetch_news() {
@@ -81,6 +90,9 @@ class WPNC_Fetcher {
 		global $wpdb;
 		$new_queue_items_count = 0;
 		$table_name = $wpdb->prefix . 'news_queue';
+
+		// Temporarily modify User-Agent for feed fetching
+		add_filter( 'http_request_args', array( $this, 'modify_http_request_args' ), 10, 2 );
 
 		foreach ( $links as $link_raw ) {
 			$parts = explode( '|', $link_raw );
@@ -192,6 +204,9 @@ class WPNC_Fetcher {
 				$total_fetched++;
 			}
 		}
+
+		// Remove filter after fetching
+		remove_filter( 'http_request_args', array( $this, 'modify_http_request_args' ), 10 );
 
 		// Admin Notifications
 		if ( $new_queue_items_count > 0 && get_option( 'wpnc_admin_notify', 0 ) ) {

@@ -21,6 +21,7 @@ class WPNC_Ajax {
 		add_action( 'wp_ajax_wpnc_bulk_approve', array( $this, 'bulk_approve' ) );
 		add_action( 'wp_ajax_wpnc_bulk_reject', array( $this, 'bulk_reject' ) );
 		add_action( 'wp_ajax_wpnc_get_stats', array( $this, 'get_stats' ) );
+		add_action( 'wp_ajax_wpnc_force_fetch', array( $this, 'force_fetch' ) );
 
 		add_action( 'wp_ajax_wpnc_load_more_news', array( $this, 'load_more_news' ) );
 		add_action( 'wp_ajax_nopriv_wpnc_load_more_news', array( $this, 'load_more_news' ) );
@@ -240,6 +241,25 @@ class WPNC_Ajax {
 		);
 
 		wp_send_json_success( $stats );
+	}
+
+	/**
+	 * Force fetch news manually.
+	 */
+	public function force_fetch() {
+		check_ajax_referer( 'wpnc_admin_nonce', 'nonce' );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( __( 'Unauthorized access.', 'wp-news-collector' ) );
+		}
+
+		// Disable time limit for manual fetch since it can take a while
+		set_time_limit( 0 );
+
+		$fetcher = new WPNC_Fetcher();
+		$fetcher->fetch_news();
+
+		$last_count = get_option( 'wpnc_last_count', 0 );
+		wp_send_json_success( array( 'message' => sprintf( __( 'Fetch completed successfully! %d items processed.', 'wp-news-collector' ), $last_count ) ) );
 	}
 
 	/**

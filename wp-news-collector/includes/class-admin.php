@@ -263,6 +263,13 @@ class WPNC_Admin {
 		echo '<hr>';
 		echo '<h3>' . esc_html__( 'Queue Statistics', 'wp-news-collector' ) . '</h3>';
 		echo '<div style="max-width: 600px;"><canvas id="wpnc-stats-chart"></canvas></div>';
+
+		echo '<hr>';
+		echo '<h3>' . esc_html__( 'Manual Actions', 'wp-news-collector' ) . '</h3>';
+		echo '<p>' . esc_html__( 'If your WP-Cron is not running reliably, you can force the plugin to fetch news right now.', 'wp-news-collector' ) . '</p>';
+		echo '<button id="wpnc-force-fetch-btn" class="button button-primary">' . esc_html__( 'Force Fetch Now', 'wp-news-collector' ) . '</button>';
+		echo '<span id="wpnc-force-fetch-spinner" class="spinner"></span>';
+		echo '<p id="wpnc-force-fetch-msg" style="display:none;"></p>';
 	}
 }
 
