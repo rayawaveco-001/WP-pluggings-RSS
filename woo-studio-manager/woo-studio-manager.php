@@ -14,6 +14,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Woo_Studio_Manager {
 
+	private $page_hook;
+
 	public function __construct() {
 		// Hook into the admin menu
 		add_action( 'admin_menu', array( $this, 'add_plugin_page' ) );
@@ -27,7 +29,7 @@ class Woo_Studio_Manager {
 	}
 
 	public function add_plugin_page() {
-		add_menu_page(
+		$this->page_hook = add_menu_page(
 			__( 'Woo Studio Manager', 'woo-studio-manager' ), // Page title
 			__( 'Studio Manager', 'woo-studio-manager' ), // Menu title
 			'manage_options', // Capability
@@ -54,19 +56,19 @@ class Woo_Studio_Manager {
 
 	public function enqueue_assets( $hook ) {
 		// Only load assets on our plugin page
-		if ( 'toplevel_page_woo-studio-manager' !== $hook ) {
+		if ( $this->page_hook !== $hook && 'toplevel_page_woo-studio-manager' !== $hook ) {
 			return;
 		}
 
 		// DataTables CSS
-		wp_enqueue_style( 'datatables-css', 'https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css', array(), '1.13.6' );
+		wp_enqueue_style( 'datatables-css', plugin_dir_url( __FILE__ ) . 'assets/css/jquery.dataTables.min.css', array(), '1.13.6' );
 
 		// Plugin specific CSS
 		wp_enqueue_style( 'wsm-admin-style', plugin_dir_url( __FILE__ ) . 'assets/css/admin-style.css', array(), '1.0.0' );
 
 		// jQuery is required for DataTables, usually loaded by WP admin already.
 		// DataTables JS
-		wp_enqueue_script( 'datatables-js', 'https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js', array( 'jquery' ), '1.13.6', true );
+		wp_enqueue_script( 'datatables-js', plugin_dir_url( __FILE__ ) . 'assets/js/jquery.dataTables.min.js', array( 'jquery' ), '1.13.6', true );
 
 		// Plugin specific JS
 		wp_enqueue_script( 'wsm-admin-app', plugin_dir_url( __FILE__ ) . 'assets/js/admin-app.js', array( 'jquery', 'datatables-js' ), '1.0.0', true );
@@ -94,7 +96,7 @@ class Woo_Studio_Manager {
 		// Use wc_get_products for efficient querying
 		$args = array(
 			'limit'   => -1, // Fetch all (~300 items)
-			'status'  => 'publish',
+			'status'  => array( 'publish', 'draft', 'pending', 'private' ),
 			'return'  => 'objects', // Return WC_Product objects
 			'orderby' => 'title',
 			'order'   => 'ASC',

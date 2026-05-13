@@ -3,11 +3,38 @@ jQuery(document).ready(function($) {
 
 	let wsmTable;
 	let modifiedItems = {};
+	let originalPrices = {}; // Tracks original values for 10% calculation
+
+	// Number Formatter for Farsi (Iran)
+	const faNumberFormat = new Intl.NumberFormat('fa-IR');
+
+	function formatNumber(num) {
+		if (num === null || num === undefined || num === '') return '';
+		return faNumberFormat.format(num);
+	}
+
+	function parseFaNumber(str) {
+		if (!str) return '';
+		// Replace Persian/Arabic numerals with standard digits and remove commas
+		return str.toString()
+			.replace(/[\u0660-\u0669]/g, function (c) { return c.charCodeAt(0) - 0x0660; })
+			.replace(/[\u06f0-\u06f9]/g, function (c) { return c.charCodeAt(0) - 0x06f0; })
+			.replace(/,/g, '')
+			.replace(/٬/g, '');
+	}
 
 	// DOM Elements
 	const $fab = $('#wsm-fab');
 	const $modifiedCount = $('#wsm-modified-count');
 	const $toastContainer = $('#wsm-toast-container');
+	const $statTotal = $('#wsm-stat-total');
+	const $statOutofstock = $('#wsm-stat-outofstock');
+	const $statStaged = $('#wsm-stat-staged');
+
+	// Bulk Updater Elements
+	const $bulkOldPrice = $('#wsm-bulk-old-price');
+	const $bulkNewPrice = $('#wsm-bulk-new-price');
+	const $bulkApplyBtn = $('#wsm-bulk-apply-btn');
 
 	// Show Toast Notification
 	function showToast(message, type = 'success') {
@@ -22,10 +49,11 @@ jQuery(document).ready(function($) {
 		}, 3000);
 	}
 
-	// Update FAB Visibility and Count
+	// Update FAB and Staged Stats
 	function updateFAB() {
 		const count = Object.keys(modifiedItems).length;
-		$modifiedCount.text(count);
+		$modifiedCount.text(formatNumber(count));
+		$statStaged.text(formatNumber(count));
 
 		if (count > 0) {
 			$fab.removeClass('hidden');
@@ -46,32 +74,107 @@ jQuery(document).ready(function($) {
 			success: function(response) {
 				if (response.success && response.data && response.data.products) {
 					initDataTable(response.data.products);
-					populateCategoryFilter(response.data.products);
+					populateFilters(response.data.products);
+					updateStats(response.data.products);
 				} else {
-					showToast('Failed to load products.', 'error');
+					showToast('خطا در بارگزاری محصولات.', 'error');
 				}
 			},
 			error: function() {
-				showToast('AJAX error while loading products.', 'error');
+				showToast('خطای سرور هنگام دریافت اطلاعات.', 'error');
 			}
 		});
 	}
 
-	// Populate Category Filter
-	function populateCategoryFilter(products) {
+	function updateStats(products) {
+		$statTotal.text(formatNumber(products.length));
+		let outOfStockCount = products.filter(p => p.stock_status === 'outofstock').length;
+		$statOutofstock.text(formatNumber(outOfStockCount));
+	}
+
+	// Populate Filters and Bulk Options
+	function populateFilters(products) {
 		const categories = new Set();
+		const priceGroups = {};
+
 		products.forEach(p => {
+			// Categories
 			if (p.categories) {
 				p.categories.split(',').forEach(c => categories.add(c.trim()));
 			}
+
+			// Store original prices for 10% logic
+			originalPrices[p.id] = {
+				regular_price: parseFloat(p.regular_price) || 0,
+				sale_price: parseFloat(p.sale_price) || 0
+			};
+
+			// Price Grouping
+			const regPrice = parseFloat(p.regular_price);
+			if (regPrice && regPrice > 0) {
+				if (!priceGroups[regPrice]) {
+					priceGroups[regPrice] = 0;
+				}
+				priceGroups[regPrice]++;
+			}
 		});
 
+		// Render Category Filter
 		const $catFilter = $('#wsm-filter-category');
+		$catFilter.find('option:not(:first)').remove(); // Prevent duplicates on reload
 		categories.forEach(cat => {
 			if (cat) {
 				$catFilter.append(new Option(cat, cat));
 			}
 		});
+
+		// Render Bulk Price-Tier Options
+		// Sort prices ascending
+		const sortedPrices = Object.keys(priceGroups).sort((a, b) => a - b);
+		$bulkOldPrice.empty().append('<option value="">انتخاب قیمت هدف...</option>');
+		sortedPrices.forEach(price => {
+			const count = priceGroups[price];
+			const label = `${formatNumber(price)} تومان (شامل ${formatNumber(count)} محصول)`;
+			$bulkOldPrice.append(new Option(label, price));
+		});
+	}
+
+	// Render Cells considering the 10% Rule
+	function renderPriceCell(data, type, row, field) {
+		if (type === 'display') {
+			let displayValue = formatNumber(data);
+			let classes = 'wsm-editable';
+			let tooltip = '';
+
+			if (modifiedItems[row.id] && modifiedItems[row.id][field] !== undefined) {
+				const oldVal = originalPrices[row.id][field];
+				const newVal = parseFloat(modifiedItems[row.id][field]) || 0;
+
+				if (oldVal > 0) {
+					const diff = newVal - oldVal;
+					const percent = (diff / oldVal) * 100;
+					const absPercent = Math.abs(percent);
+
+					let directionText = percent > 0 ? 'افزایش' : 'کاهش';
+					tooltip = `${directionText} ${formatNumber(absPercent.toFixed(1))}٪`;
+
+					if (absPercent > 10) {
+						classes += ' wsm-staged-danger';
+					} else {
+						classes += ' wsm-staged-safe';
+					}
+				} else {
+					// Edge case: Old price was 0, but new price set
+					classes += ' wsm-staged-safe';
+					tooltip = 'ثبت قیمت جدید';
+				}
+				displayValue = formatNumber(newVal);
+			}
+
+			let tooltipAttr = tooltip ? `data-tooltip="${tooltip}"` : '';
+			return `<div class="${classes}" data-field="${field}" data-id="${row.id}" ${tooltipAttr}>${displayValue}</div>`;
+		}
+		return data;
 	}
 
 	// Initialize DataTable
@@ -81,34 +184,30 @@ jQuery(document).ready(function($) {
 			pageLength: 50,
 			lengthMenu: [10, 25, 50, 100, 300],
 			columns: [
-				{ data: 'id' },
+				{ data: 'id', render: function(data) { return formatNumber(data); } },
 				{ data: 'title' },
-				{ data: 'sku' },
-				{ data: 'type' },
+				{ data: 'sku', render: function(data) { return data ? data : '<span style="color:#aaa">-</span>'; } },
+				{ data: 'type', render: function(data) { return data === 'simple' ? 'ساده' : 'متغیر'; } },
 				{ data: 'categories' },
 				{
 					data: 'regular_price',
-					render: function(data, type, row) {
-						if (type === 'display') {
-							return '<div class="wsm-editable" data-field="regular_price" data-id="'+row.id+'">' + (data || '') + '</div>';
-						}
-						return data;
-					}
+					render: function(data, type, row) { return renderPriceCell(data, type, row, 'regular_price'); }
 				},
 				{
 					data: 'sale_price',
-					render: function(data, type, row) {
-						if (type === 'display') {
-							return '<div class="wsm-editable" data-field="sale_price" data-id="'+row.id+'">' + (data || '') + '</div>';
-						}
-						return data;
-					}
+					render: function(data, type, row) { return renderPriceCell(data, type, row, 'sale_price'); }
 				},
 				{
 					data: 'stock_quantity',
 					render: function(data, type, row) {
 						if (type === 'display') {
-							return '<div class="wsm-editable" data-field="stock_quantity" data-id="'+row.id+'">' + (data || '0') + '</div>';
+							let displayVal = formatNumber(data || '0');
+							let classes = 'wsm-editable';
+							if (modifiedItems[row.id] && modifiedItems[row.id]['stock_quantity'] !== undefined) {
+								classes += ' wsm-staged-safe';
+								displayVal = formatNumber(modifiedItems[row.id]['stock_quantity']);
+							}
+							return `<div class="${classes}" data-field="stock_quantity" data-id="${row.id}">${displayVal}</div>`;
 						}
 						return data;
 					}
@@ -117,36 +216,60 @@ jQuery(document).ready(function($) {
 					data: 'stock_status',
 					render: function(data, type, row) {
 						let badgeClass = 'secondary';
-						if(data === 'instock') badgeClass = 'success';
-						if(data === 'outofstock') badgeClass = 'danger';
-						if(data === 'onbackorder') badgeClass = 'warning';
-						return '<span class="wsm-status-badge ' + badgeClass + '">' + data + '</span>';
+						let label = data;
+						if(data === 'instock') { badgeClass = 'success'; label = 'موجود'; }
+						if(data === 'outofstock') { badgeClass = 'danger'; label = 'ناموجود'; }
+						if(data === 'onbackorder') { badgeClass = 'warning'; label = 'پیش‌خرید'; }
+						return `<span class="wsm-status-badge ${badgeClass}">${label}</span>`;
 					}
 				}
 			],
 			language: {
 				search: "_INPUT_",
-				searchPlaceholder: "Global Search..."
-			},
-			createdRow: function(row, data, dataIndex) {
-				if (modifiedItems[data.id]) {
-					$(row).addClass('wsm-row-edited');
+				searchPlaceholder: "جستجوی پیشرفته...",
+				lengthMenu: "نمایش _MENU_ ردیف",
+				info: "نمایش _START_ تا _END_ از _TOTAL_ محصول",
+				infoEmpty: "موردی یافت نشد",
+				infoFiltered: "(فیلتر شده از _MAX_ محصول)",
+				paginate: {
+					first: "ابتدا",
+					last: "انتها",
+					next: "بعدی",
+					previous: "قبلی"
 				}
 			}
 		});
 
 		// Custom Filters logic
-		$('#wsm-filter-category').on('change', function() {
-			wsmTable.column(4).search(this.value).draw();
-		});
+		$('#wsm-filter-category').on('change', function() { wsmTable.column(4).search(this.value).draw(); });
+		$('#wsm-filter-type').on('change', function() { wsmTable.column(3).search(this.value).draw(); });
+		$('#wsm-filter-stock-status').on('change', function() { wsmTable.column(8).search(this.value).draw(); });
+	}
 
-		$('#wsm-filter-type').on('change', function() {
-			wsmTable.column(3).search(this.value).draw();
-		});
+	// Helper to Process Edits
+	function processEdit(id, field, newValueRaw) {
+		const idNum = parseInt(id);
+		let newValue = parseFloat(newValueRaw);
+		if (isNaN(newValue)) newValue = 0;
 
-		$('#wsm-filter-stock-status').on('change', function() {
-			wsmTable.column(8).search(this.value).draw();
+		// Initialize item if not exists
+		if (!modifiedItems[idNum]) {
+			modifiedItems[idNum] = { id: idNum };
+		}
+
+		modifiedItems[idNum][field] = newValue;
+		updateFAB();
+
+		// Invalidate specific row to trigger re-render safely
+		wsmTable.rows().every(function() {
+			const data = this.data();
+			if (data.id == idNum) {
+				// We don't overwrite data[field] with raw new value immediately because render
+				// function relies on `modifiedItems` for staging logic. We just invalidate.
+				this.invalidate();
+			}
 		});
+		wsmTable.draw(false);
 	}
 
 	// Inline Edit Logic
@@ -154,48 +277,75 @@ jQuery(document).ready(function($) {
 		e.stopPropagation();
 		const $cell = $(this);
 
-		// Prevent multiple inputs
 		if ($cell.find('input').length > 0) return;
 
-		const currentValue = $cell.text().trim();
 		const field = $cell.data('field');
 		const id = $cell.data('id');
 
-		const $input = $('<input type="number" step="any" class="wsm-edit-input" value="' + currentValue + '">');
+		// Use staged value if exists, else original
+		let currentValue = originalPrices[id] && originalPrices[id][field] !== undefined ? originalPrices[id][field] : 0;
+		if (field === 'stock_quantity') {
+			currentValue = wsmTable.row($cell.closest('tr')).data().stock_quantity || 0;
+		}
+		if (modifiedItems[id] && modifiedItems[id][field] !== undefined) {
+			currentValue = modifiedItems[id][field];
+		}
 
-		$cell.empty().append($input);
-		$input.focus();
+		// Clean input (no commas)
+		const cleanValue = currentValue;
+
+		const $input = $(`<input type="number" step="any" class="wsm-edit-input" value="${cleanValue}">`);
+
+		$cell.empty().removeClass('wsm-staged-safe wsm-staged-danger').removeAttr('data-tooltip').append($input);
+		$input.focus().select();
 
 		$input.on('blur keypress', function(e) {
 			if (e.type === 'keypress' && e.which !== 13) return; // Only trigger on Enter key
 
-			const newValue = $(this).val().trim();
-			$cell.empty().text(newValue);
-
-			if (newValue !== currentValue) {
-				// Initialize item if not exists
-				if (!modifiedItems[id]) {
-					modifiedItems[id] = { id: id };
-				}
-
-				// Update value
-				modifiedItems[id][field] = newValue;
-
-				// Apply highlight to row
-				$cell.closest('tr').addClass('wsm-row-edited');
-
-				// Update FAB
-				updateFAB();
-
-				// Update underlying DataTable data so sorting/filtering still works
-				const rowIdx = wsmTable.cell($cell.closest('td')).index().row;
-				const rowData = wsmTable.row(rowIdx).data();
-				rowData[field] = newValue;
-				// Invalidate the row to refresh internal cache without re-rendering the whole row (which removes classes)
-				wsmTable.row(rowIdx).invalidate().draw(false);
-				$cell.closest('tr').addClass('wsm-row-edited'); // re-add class after draw
+			const rawVal = parseFaNumber($(this).val().trim());
+			if (rawVal !== currentValue.toString() && rawVal !== '') {
+				processEdit(id, field, rawVal);
+			} else {
+				// Revert visual change if no logical change
+				wsmTable.row($cell.closest('tr')).invalidate().draw(false);
 			}
 		});
+	});
+
+	// Bulk Price-Tier Updater Logic
+	$bulkApplyBtn.on('click', function() {
+		const targetPriceRaw = $bulkOldPrice.val();
+		const newPriceRaw = parseFaNumber($bulkNewPrice.val().trim());
+
+		if (!targetPriceRaw || !newPriceRaw) {
+			showToast('لطفا قیمت پایه و مبلغ جدید را وارد کنید.', 'error');
+			return;
+		}
+
+		const targetPrice = parseFloat(targetPriceRaw);
+		const newPrice = parseFloat(newPriceRaw);
+
+		let affectedCount = 0;
+
+		wsmTable.rows().every(function() {
+			const data = this.data();
+			// Ensure we check original price or staged price
+			let currentRegPrice = parseFloat(data.regular_price);
+
+			if (currentRegPrice === targetPrice) {
+				// Check if it's already staged to something else, skip or overwrite?
+				// Overwrite makes sense here.
+				processEdit(data.id, 'regular_price', newPrice);
+				affectedCount++;
+			}
+		});
+
+		if (affectedCount > 0) {
+			showToast(`${formatNumber(affectedCount)} محصول بروزرسانی و به صف اضافه شد.`, 'success');
+			$bulkNewPrice.val('');
+		} else {
+			showToast('محصولی با این قیمت یافت نشد.', 'error');
+		}
 	});
 
 	// FAB Click - Save Changes
@@ -203,11 +353,11 @@ jQuery(document).ready(function($) {
 		const itemsToSync = Object.values(modifiedItems);
 
 		if (itemsToSync.length === 0) {
-			showToast(wsmData.i18n.noItems, 'error');
+			showToast('هیچ تغییری برای ذخیره وجود ندارد.', 'error');
 			return;
 		}
 
-		// Disable button during sync
+		// Disable button
 		const $icon = $fab.find('.dashicons');
 		$icon.removeClass('dashicons-saved').addClass('dashicons-update').css('animation', 'spin 1s linear infinite');
 		$fab.prop('disabled', true);
@@ -222,41 +372,51 @@ jQuery(document).ready(function($) {
 			},
 			success: function(response) {
 				if (response.success) {
-					showToast(wsmData.i18n.success, 'success');
+					showToast('تغییرات با موفقیت ذخیره شدند!', 'success');
+
+					// Update underlying Data and originalPrices
+					itemsToSync.forEach(item => {
+						const id = item.id;
+						wsmTable.rows().every(function() {
+							const data = this.data();
+							if (data.id == id) {
+								if (item.regular_price !== undefined) {
+									data.regular_price = item.regular_price;
+									originalPrices[id].regular_price = parseFloat(item.regular_price);
+								}
+								if (item.sale_price !== undefined) {
+									data.sale_price = item.sale_price;
+									originalPrices[id].sale_price = parseFloat(item.sale_price);
+								}
+								if (item.stock_quantity !== undefined) {
+									data.stock_quantity = item.stock_quantity;
+									let qty = parseFloat(item.stock_quantity);
+									data.stock_status = qty <= 0 ? 'outofstock' : 'instock';
+								}
+								this.invalidate();
+							}
+						});
+					});
 
 					// Clear modifications
 					modifiedItems = {};
 					updateFAB();
 
-					// Remove highlight classes
-					$('#wsm-products-table tbody tr').removeClass('wsm-row-edited');
-
-					// Optional: Reload data to get updated stock status, etc.
-					// wsmTable.destroy();
-					// loadData(); // Alternatively, just update the UI locally for speed.
-
-					// Update local UI for stock status if qty was changed
-					itemsToSync.forEach(item => {
-						if (item.stock_quantity !== undefined) {
-							// find row, update status column
-							wsmTable.rows().every(function() {
-								var data = this.data();
-								if (data.id == item.id) {
-									let qty = parseFloat(item.stock_quantity);
-									data.stock_status = qty <= 0 ? 'outofstock' : 'instock';
-									this.invalidate();
-								}
-							});
-						}
-					});
 					wsmTable.draw(false);
 
+					// Re-evaluate stats and filters
+					const allData = wsmTable.rows().data().toArray();
+					updateStats(allData);
+
+					// Debounce or rebuild price filter
+					setTimeout(() => { populateFilters(allData); }, 500);
+
 				} else {
-					showToast(response.data.message || wsmData.i18n.error, 'error');
+					showToast(response.data.message || 'خطا در ذخیره اطلاعات.', 'error');
 				}
 			},
 			error: function() {
-				showToast(wsmData.i18n.error, 'error');
+				showToast('ارتباط با سرور قطع شد.', 'error');
 			},
 			complete: function() {
 				$icon.removeClass('dashicons-update').addClass('dashicons-saved').css('animation', 'none');
@@ -264,9 +424,6 @@ jQuery(document).ready(function($) {
 			}
 		});
 	});
-
-	// Add simple spin animation CSS for sync icon
-	$('<style>@keyframes spin { 100% { transform: rotate(360deg); } }</style>').appendTo('head');
 
 	// Init
 	loadData();
