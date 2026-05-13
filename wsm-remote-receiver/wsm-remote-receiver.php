@@ -23,6 +23,9 @@ add_action( 'rest_api_init', function () {
 	) );
 } );
 
+/**
+ * Strict permission callback to verify the custom header secret.
+ */
 function wsm_receiver_verify_secret( WP_REST_Request $request ) {
 	$header_secret = $request->get_header( 'x_wsm_secret' ); // WordPress converts custom headers to lowercase with underscores
 	if ( $header_secret === WSM_SHARED_SECRET ) {
@@ -31,6 +34,9 @@ function wsm_receiver_verify_secret( WP_REST_Request $request ) {
 	return new WP_Error( 'forbidden', 'Invalid Secret', array( 'status' => 403 ) );
 }
 
+/**
+ * High-performance processing of the sync payload.
+ */
 function wsm_receiver_process_sync( WP_REST_Request $request ) {
 	global $wpdb;
 
@@ -59,12 +65,21 @@ function wsm_receiver_process_sync( WP_REST_Request $request ) {
 		if ( $product_id ) {
 			$product = wc_get_product( $product_id );
 			if ( $product ) {
-				if ( isset( $item['regular_price'] ) ) {
-					$product->set_regular_price( sanitize_text_field( $item['regular_price'] ) );
+				// Tax Deduction Business Logic: The prices sent from the source website include a 10% VAT/Tax.
+				// Apply mathematical formula to extract the base price before saving.
+				if ( isset( $item['regular_price'] ) && is_numeric( $item['regular_price'] ) ) {
+					$base_regular = round( floatval( $item['regular_price'] ) / 1.1 );
+					$product->set_regular_price( $base_regular );
 				}
-				if ( isset( $item['sale_price'] ) ) {
-					$product->set_sale_price( sanitize_text_field( $item['sale_price'] ) );
+
+				if ( isset( $item['sale_price'] ) && is_numeric( $item['sale_price'] ) && $item['sale_price'] > 0 ) {
+					$base_sale = round( floatval( $item['sale_price'] ) / 1.1 );
+					$product->set_sale_price( $base_sale );
+				} else {
+					// Clear the sale price if empty
+					$product->set_sale_price( '' );
 				}
+
 				$product->save();
 				$updated_count++;
 			}
