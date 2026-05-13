@@ -90,6 +90,72 @@
 	padding: 24px;
 }
 
+/* Contextual Bulk Action Bar */
+.wsm-bulk-action-bar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	background-color: var(--wsm-primary);
+	color: #fff;
+	padding: 15px 20px;
+	border-radius: 8px;
+	margin-bottom: 20px;
+	transition: opacity 0.3s ease, transform 0.3s ease;
+	opacity: 1;
+	transform: translateY(0);
+}
+
+.wsm-bulk-action-bar.hidden {
+	opacity: 0;
+	pointer-events: none;
+	position: absolute; /* Remove from flow to not affect layout when hidden */
+	transform: translateY(-10px);
+}
+
+.wsm-bulk-count {
+	font-weight: 700;
+	font-size: 15px;
+}
+
+.wsm-bulk-inputs {
+	display: flex;
+	gap: 10px;
+}
+
+.wsm-bulk-inputs input {
+	padding: 8px 12px;
+	border: 1px solid transparent;
+	border-radius: 6px;
+	font-family: var(--wsm-font-family);
+	color: var(--wsm-text-color);
+}
+
+.wsm-bulk-inputs button {
+	padding: 8px 16px;
+	background: #fff;
+	color: var(--wsm-primary);
+	border: none;
+	border-radius: 6px;
+	cursor: pointer;
+	font-weight: bold;
+	transition: background-color 0.2s;
+	font-family: var(--wsm-font-family);
+}
+
+.wsm-bulk-inputs button:hover {
+	background: #f0f0f1;
+}
+
+/* Checkboxes */
+.wsm-checkbox-col {
+	width: 40px !important;
+	text-align: center !important;
+}
+
+.wsm-row-checkbox, #wsm-select-all {
+	cursor: pointer;
+}
+
 /* Unified Toolbar / Filters */
 .wsm-toolbar {
 	display: flex;

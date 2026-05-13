@@ -64,10 +64,20 @@
 			</div>
 		</div>
 
+		<!-- Contextual Bulk Action Bar -->
+		<div id="wsm-bulk-action-bar" class="wsm-bulk-action-bar hidden">
+			<div class="wsm-bulk-count"><span id="wsm-selected-count">0</span> <?php esc_html_e( 'محصول انتخاب شده', 'woo-studio-manager' ); ?></div>
+			<div class="wsm-bulk-inputs">
+				<input type="number" id="wsm-bulk-new-price-input" placeholder="<?php esc_attr_e( 'قیمت جدید گروهی', 'woo-studio-manager' ); ?>" step="any">
+				<button type="button" id="wsm-bulk-apply-selected-btn"><?php esc_html_e( 'اعمال به انتخاب‌شده‌ها', 'woo-studio-manager' ); ?></button>
+			</div>
+		</div>
+
 		<div class="wsm-table-container">
 			<table id="wsm-products-table" class="display stripe hover" style="width:100%">
 				<thead>
 					<tr>
+						<th class="wsm-checkbox-col"><input type="checkbox" id="wsm-select-all"></th>
 						<th><?php esc_html_e( 'شناسه', 'woo-studio-manager' ); ?></th>
 						<th><?php esc_html_e( 'عنوان', 'woo-studio-manager' ); ?></th>
 						<th><?php esc_html_e( 'شناسه محصول (SKU)', 'woo-studio-manager' ); ?></th>

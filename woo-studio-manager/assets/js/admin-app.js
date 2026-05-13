@@ -36,6 +36,15 @@ jQuery(document).ready(function($) {
 	const $bulkNewPrice = $('#wsm-bulk-new-price');
 	const $bulkApplyBtn = $('#wsm-bulk-apply-btn');
 
+	// Contextual Action Bar Elements
+	const $bulkActionBar = $('#wsm-bulk-action-bar');
+	const $selectedCount = $('#wsm-selected-count');
+	const $bulkNewPriceInput = $('#wsm-bulk-new-price-input');
+	const $bulkApplySelectedBtn = $('#wsm-bulk-apply-selected-btn');
+	const $selectAll = $('#wsm-select-all');
+
+	let selectedRows = new Set();
+
 	// Show Toast Notification
 	function showToast(message, type = 'success') {
 		const $toast = $('<div class="wsm-toast ' + type + '"></div>').text(message);
@@ -184,6 +193,18 @@ jQuery(document).ready(function($) {
 			pageLength: 50,
 			lengthMenu: [10, 25, 50, 100, 300],
 			columns: [
+				{
+					data: 'id',
+					render: function(data, type, row) {
+						if (type === 'display') {
+							let isChecked = selectedRows.has(data) ? 'checked' : '';
+							return `<input type="checkbox" class="wsm-row-checkbox" value="${data}" ${isChecked}>`;
+						}
+						return data;
+					},
+					orderable: false,
+					className: 'wsm-checkbox-col'
+				},
 				{ data: 'id', render: function(data) { return formatNumber(data); } },
 				{ data: 'title' },
 				{ data: 'sku', render: function(data) { return data ? data : '<span style="color:#aaa">-</span>'; } },
@@ -310,6 +331,73 @@ jQuery(document).ready(function($) {
 				wsmTable.row($cell.closest('tr')).invalidate().draw(false);
 			}
 		});
+	});
+
+	// Update Contextual Action Bar Visibility
+	function updateActionBar() {
+		const count = selectedRows.size;
+		$selectedCount.text(formatNumber(count));
+
+		if (count > 0) {
+			$bulkActionBar.removeClass('hidden');
+		} else {
+			$bulkActionBar.addClass('hidden');
+			$selectAll.prop('checked', false);
+		}
+	}
+
+	// Master Select All Checkbox
+	$selectAll.on('change', function() {
+		const isChecked = $(this).is(':checked');
+		const currentRows = wsmTable.rows({ page: 'current' }).data().toArray();
+
+		if (isChecked) {
+			currentRows.forEach(row => selectedRows.add(row.id));
+		} else {
+			currentRows.forEach(row => selectedRows.delete(row.id));
+		}
+
+		// Update checkboxes on current page
+		$('.wsm-row-checkbox').prop('checked', isChecked);
+		updateActionBar();
+	});
+
+	// Individual Row Checkbox
+	$('#wsm-products-table').on('change', '.wsm-row-checkbox', function() {
+		const id = parseInt($(this).val());
+		if ($(this).is(':checked')) {
+			selectedRows.add(id);
+		} else {
+			selectedRows.delete(id);
+			$selectAll.prop('checked', false);
+		}
+		updateActionBar();
+	});
+
+	// Apply Bulk Price to Selected Rows
+	$bulkApplySelectedBtn.on('click', function() {
+		const newPriceRaw = parseFaNumber($bulkNewPriceInput.val().trim());
+
+		if (!newPriceRaw) {
+			showToast('لطفا قیمت جدید را وارد کنید.', 'error');
+			return;
+		}
+
+		const newPrice = parseFloat(newPriceRaw);
+		let affectedCount = 0;
+
+		selectedRows.forEach(id => {
+			processEdit(id, 'regular_price', newPrice);
+			affectedCount++;
+		});
+
+		if (affectedCount > 0) {
+			showToast(`${formatNumber(affectedCount)} محصول بروزرسانی و به صف اضافه شد.`, 'success');
+			$bulkNewPriceInput.val('');
+			selectedRows.clear();
+			$('.wsm-row-checkbox').prop('checked', false);
+			updateActionBar();
+		}
 	});
 
 	// Bulk Price-Tier Updater Logic

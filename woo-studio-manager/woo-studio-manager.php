@@ -17,6 +17,7 @@ class Woo_Studio_Manager {
 	private $page_hook;
 
 	// Configuration Constants
+	// Note: Store BALE_BOT_TOKEN and SITE2_SECRET securely (e.g. wp-config.php or WP Options)
 	const BALE_CHAT_ID         = '765373061';
 	const SITE2_SYNC_URL       = 'https://fara-moj.ir/wp-json/wsm-receiver/v1/sync';
 	const TARGET_SYNC_CATEGORY = 'آنتن GHz';
