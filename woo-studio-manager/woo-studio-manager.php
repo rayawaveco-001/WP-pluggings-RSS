@@ -238,9 +238,9 @@ class Woo_Studio_Manager {
 			// Add to Sync Data
 			if ( $has_target_category ) {
 				$sync_data[] = array(
-					'title'         => $title,
-					'regular_price' => $product->get_regular_price(),
-					'sale_price'    => $product->get_sale_price(),
+					'title'     => $title,
+					'new_price' => $product->get_regular_price(),
+					'old_price' => $old_regular_price, // The tracked regular_price before applying save()
 				);
 			}
 		}
