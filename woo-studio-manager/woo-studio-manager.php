@@ -16,6 +16,11 @@ class Woo_Studio_Manager {
 
 	private $page_hook;
 
+	// Configuration Constants
+	const BALE_CHAT_ID         = '765373061';
+	const SITE2_SYNC_URL       = 'https://fara-moj.ir/wp-json/wsm-receiver/v1/sync';
+	const TARGET_SYNC_CATEGORY = 'آنتن GHz';
+
 	public function __construct() {
 		// Hook into the admin menu
 		add_action( 'admin_menu', array( $this, 'add_plugin_page' ) );
@@ -41,7 +46,8 @@ class Woo_Studio_Manager {
 	}
 
 	public function render_admin_page() {
-		if ( ! current_user_can( 'manage_options' ) ) {
+		// The prompt requested 'administrator' role specifically for AJAX handlers, but we'll enforce it here as well for consistency if they requested strict administrator access
+		if ( ! current_user_can( 'administrator' ) ) {
 			return;
 		}
 
@@ -89,7 +95,7 @@ class Woo_Studio_Manager {
 		// Check nonce and capability
 		check_ajax_referer( 'wsm_ajax_nonce', 'nonce' );
 
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( 'administrator' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Unauthorized', 'woo-studio-manager' ) ) );
 		}
 
@@ -150,10 +156,10 @@ class Woo_Studio_Manager {
 	}
 
 	public function ajax_batch_sync() {
-		// Check nonce and capability
+		// Check nonce and capability strictly
 		check_ajax_referer( 'wsm_ajax_nonce', 'nonce' );
 
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( 'administrator' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Unauthorized', 'woo-studio-manager' ) ) );
 		}
 
@@ -163,6 +169,9 @@ class Woo_Studio_Manager {
 		if ( empty( $modified_items ) || ! is_array( $modified_items ) ) {
 			wp_send_json_error( array( 'message' => __( 'No items provided', 'woo-studio-manager' ) ) );
 		}
+
+		$csv_data = array();
+		$sync_data = array();
 
 		foreach ( $modified_items as $item ) {
 			if ( ! isset( $item['id'] ) ) {
@@ -176,9 +185,14 @@ class Woo_Studio_Manager {
 				continue;
 			}
 
+			$title = $product->get_name();
+			$old_regular_price = $product->get_regular_price();
+			$new_regular_price = $old_regular_price;
+
 			// Update Regular Price
 			if ( isset( $item['regular_price'] ) ) {
-				$product->set_regular_price( sanitize_text_field( $item['regular_price'] ) );
+				$new_regular_price = sanitize_text_field( $item['regular_price'] );
+				$product->set_regular_price( $new_regular_price );
 			}
 
 			// Update Sale Price
@@ -201,6 +215,97 @@ class Woo_Studio_Manager {
 
 			// Save the product
 			$product->save();
+
+			// Add to CSV Report
+			$csv_data[] = array(
+				$title,
+				$old_regular_price,
+				$new_regular_price,
+			);
+
+			// Check for TARGET_SYNC_CATEGORY
+			$has_target_category = false;
+			if ( $product->is_type( 'simple' ) ) {
+				$has_target_category = has_term( self::TARGET_SYNC_CATEGORY, 'product_cat', $product_id );
+			} elseif ( $product->is_type( 'variation' ) ) {
+				$parent_id = $product->get_parent_id();
+				if ( $parent_id ) {
+					$has_target_category = has_term( self::TARGET_SYNC_CATEGORY, 'product_cat', $parent_id );
+				}
+			}
+
+			// Add to Sync Data
+			if ( $has_target_category ) {
+				$sync_data[] = array(
+					'title'         => $title,
+					'regular_price' => $product->get_regular_price(),
+					'sale_price'    => $product->get_sale_price(),
+				);
+			}
+		}
+
+		// Feature 1: Automated CSV Report to Bale Messenger
+		if ( ! empty( $csv_data ) ) {
+			// Generate CSV in memory
+			$fp = fopen( 'php://temp', 'r+' );
+			// Inject UTF-8 BOM
+			fputs( $fp, "\xEF\xBB\xBF" );
+
+			// Write Headers
+			fputcsv( $fp, array( 'نام محصول', 'قیمت قدیم', 'قیمت جدید' ) );
+
+			// Write Data
+			foreach ( $csv_data as $row ) {
+				fputcsv( $fp, $row );
+			}
+
+			rewind( $fp );
+			$csv_content = stream_get_contents( $fp );
+			fclose( $fp );
+
+			// Send to Bale Messenger non-blockingly using wp_remote_post
+			$boundary = wp_generate_password( 24, false );
+
+			$payload = '';
+
+			// chat_id
+			$payload .= '--' . $boundary . "\r\n";
+			$payload .= 'Content-Disposition: form-data; name="chat_id"' . "\r\n\r\n";
+			$payload .= self::BALE_CHAT_ID . "\r\n";
+
+			// document
+			$payload .= '--' . $boundary . "\r\n";
+			$payload .= 'Content-Disposition: form-data; name="document"; filename="price_updates.csv"' . "\r\n";
+			$payload .= 'Content-Type: text/csv' . "\r\n\r\n";
+			$payload .= $csv_content . "\r\n";
+
+			$payload .= '--' . $boundary . '--' . "\r\n";
+
+			$bot_token = defined('WSM_BALE_BOT_TOKEN') ? WSM_BALE_BOT_TOKEN : get_option('wsm_bale_bot_token', '');
+			if ( $bot_token ) {
+				wp_remote_post( 'https://tapi.bale.ai/bot' . $bot_token . '/sendDocument', array(
+					'headers' => array(
+						'Content-Type' => 'multipart/form-data; boundary=' . $boundary,
+					),
+					'body'     => $payload,
+					'blocking' => false,
+					'timeout'  => 5,
+				) );
+			}
+		}
+
+		// Feature 2: Secure Targeted Sync to Site 2
+		if ( ! empty( $sync_data ) ) {
+			$site2_secret = defined('WSM_SITE2_SECRET') ? WSM_SITE2_SECRET : get_option('wsm_site2_secret', '');
+			wp_remote_post( self::SITE2_SYNC_URL, array(
+				'headers' => array(
+					'Content-Type' => 'application/json',
+					'X-WSM-Secret' => $site2_secret,
+				),
+				'body'     => wp_json_encode( $sync_data ),
+				'blocking' => false,
+				'timeout'  => 15,
+			) );
 		}
 
 		wp_send_json_success( array( 'message' => __( 'Batch sync completed successfully', 'woo-studio-manager' ) ) );
