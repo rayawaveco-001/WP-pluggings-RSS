@@ -1,0 +1,170 @@
+/* General Styles */
+.wsm-wrap {
+    font-family: Tahoma, Arial, sans-serif;
+    margin-top: 20px;
+}
+
+/* Dashboard Cards */
+.wsm-dashboard-cards {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.wsm-card {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+
+.wsm-card-icon {
+    font-size: 40px;
+    width: 40px;
+    height: 40px;
+    color: #2271b1;
+    margin-left: 15px; /* RTL */
+}
+
+.wsm-card-danger .wsm-card-icon {
+    color: #dc3232;
+}
+
+.wsm-card-safe .wsm-card-icon {
+    color: #46b450;
+}
+
+.wsm-card-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.wsm-card-title {
+    margin: 0 0 5px 0;
+    color: #646970;
+    font-size: 14px;
+}
+
+.wsm-card-value {
+    font-size: 24px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.wsm-card-danger .wsm-card-value {
+    color: #dc3232;
+}
+
+.wsm-card-safe .wsm-card-value {
+    color: #46b450;
+}
+
+/* Bulk Action Bar */
+.wsm-bulk-bar {
+    background: #f0f0f1;
+    border: 1px solid #ccd0d4;
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,.05);
+}
+
+.wsm-bulk-info {
+    font-weight: 600;
+}
+
+.wsm-bulk-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.wsm-bulk-actions input[type="number"] {
+    padding: 5px;
+    width: 150px;
+}
+
+/* Table Styles */
+.wsm-table-container {
+    background: #fff;
+    padding: 20px;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+    margin-bottom: 80px; /* Space for FAB */
+}
+
+.wsm-price-cell-container {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.wsm-inline-price {
+    width: 100px;
+    padding: 4px;
+}
+
+.wsm-price-badge {
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: bold;
+    white-space: nowrap;
+    direction: ltr; /* Ensure signs like + and % format properly */
+}
+
+/* Row Highlights */
+tr.wsm-preview-danger td {
+    background-color: rgba(220, 50, 50, 0.1) !important;
+}
+
+tr.wsm-preview-safe td {
+    background-color: rgba(70, 180, 80, 0.1) !important;
+}
+
+/* Floating Action Button (FAB) */
+.wsm-fab-container {
+    position: fixed;
+    bottom: 30px;
+    left: 30px; /* Adjust based on RTL/LTR preference, usually left in RTL to not overlap menu */
+    z-index: 9999;
+}
+
+.wsm-fab {
+    background-color: #2271b1;
+    color: #fff;
+    border: none;
+    border-radius: 30px;
+    padding: 15px 25px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+.wsm-fab:hover {
+    background-color: #135e96;
+    transform: translateY(-2px);
+}
+
+.wsm-fab:focus {
+    outline: none;
+}
+
+.wsm-fab .dashicons {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+}
