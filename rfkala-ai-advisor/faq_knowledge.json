@@ -1,0 +1,29 @@
+[
+  {
+    "topic": "MicroTik Antenna Selection",
+    "keywords": ["antenna", "microtik", "distance", "ptp", "point to point", "mANT"],
+    "answers": {
+      "novice": "For a simple setup, MicroTik offers easy-to-use antennas like the SXTsq series which are great for short distances.",
+      "intermediate": "If you are setting up a Point-to-Point link under 10km, consider the MicroTik LDF or SXTsq 5 ac. For slightly longer distances, the LHG 5 is a solid choice.",
+      "expert": "For high-throughput, long-distance PtP links (>15km), utilize the MicroTik mANT30 parabolic dish combined with a NetMetal or BaseBox radio, ensuring you calculate your link budget and Fresnel zone clearance properly."
+    }
+  },
+  {
+    "topic": "Cable Attenuation and Selection",
+    "keywords": ["cable", "loss", "attenuation", "lmr", "rg", "coaxial"],
+    "answers": {
+      "novice": "Make sure to use a high-quality cable to connect your radio and antenna. Shorter cables are better because they lose less signal.",
+      "intermediate": "When choosing a coaxial cable, look at the attenuation rate at your operating frequency (e.g., 5GHz). LMR-400 is a standard choice for minimizing loss over medium lengths compared to RG-58.",
+      "expert": "Calculate your total cable loss using the manufacturer's attenuation specs per meter at the specific operating frequency. For critical 5GHz or 6GHz links, use LMR-400 or LMR-600 to keep dB loss to an absolute minimum, and account for connector insertion loss (typically 0.5dB per connector)."
+    }
+  },
+  {
+    "topic": "RouterOS Configuration Basics",
+    "keywords": ["routeros", "config", "setup", "winbox", "mikrotik"],
+    "answers": {
+      "novice": "You can configure your MikroTik device using an app called WinBox. It gives you a visual interface to easily set up your internet.",
+      "intermediate": "In WinBox, use the 'Quick Set' menu for basic AP or CPE configurations, but make sure to update your RouterOS and secure your admin password immediately.",
+      "expert": "Avoid 'Quick Set' for complex deployments. Manually configure your bridge, IP addressing, and wireless interfaces (e.g., nv2 or 802.11ac protocols) via the CLI or WinBox. Ensure proper firewall rules are in place on the input chain to protect the management plane."
+    }
+  }
+]
