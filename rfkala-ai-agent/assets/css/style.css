@@ -1,0 +1,154 @@
+/* Floating Chat Widget Styles for RFKala AI Agent */
+
+.rfkala-chat-launcher {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: #0056b3; /* Blue */
+    color: #ffd700; /* Yellow */
+    border: none;
+    border-radius: 50px;
+    padding: 15px 25px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    z-index: 9999;
+    transition: background-color 0.3s;
+}
+
+.rfkala-chat-launcher:hover {
+    background-color: #004494;
+}
+
+.rfkala-chat-widget {
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    width: 350px;
+    max-height: 500px;
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    display: none;
+    flex-direction: column;
+    z-index: 10000;
+    overflow: hidden;
+    border: 2px solid #0056b3;
+}
+
+.rfkala-chat-header {
+    background-color: #0056b3;
+    color: #ffd700;
+    padding: 15px;
+    font-size: 18px;
+    font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.rfkala-chat-toggle {
+    background: none;
+    border: none;
+    color: #ffd700;
+    font-size: 20px;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.rfkala-chat-body {
+    flex-grow: 1;
+    padding: 15px;
+    overflow-y: auto;
+    background-color: #f9f9f9;
+    height: 300px;
+}
+
+.rfkala-chat-messages {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.chat-msg {
+    padding: 10px;
+    border-radius: 8px;
+    max-width: 80%;
+    word-wrap: break-word;
+}
+
+.chat-msg.user {
+    background-color: #0056b3;
+    color: #fff;
+    align-self: flex-end;
+    border-bottom-right-radius: 0;
+}
+
+.chat-msg.agent {
+    background-color: #ffd700;
+    color: #333;
+    align-self: flex-start;
+    border-bottom-left-radius: 0;
+}
+
+.chat-products {
+    margin-top: 10px;
+    font-size: 13px;
+    background: #fff;
+    border: 1px solid #ddd;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.chat-product-item {
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+    margin-bottom: 5px;
+}
+.chat-product-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+.chat-product-item a {
+    color: #0056b3;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.rfkala-chat-footer {
+    display: flex;
+    padding: 10px;
+    background-color: #fff;
+    border-top: 1px solid #ddd;
+}
+
+.rfkala-chat-footer input {
+    flex-grow: 1;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-right: 10px;
+}
+
+.rfkala-chat-footer button {
+    background-color: #0056b3;
+    color: #ffd700;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.rfkala-chat-footer button:hover {
+    background-color: #004494;
+}
+
+.chat-loading {
+    align-self: flex-start;
+    color: #666;
+    font-style: italic;
+    font-size: 12px;
+}
