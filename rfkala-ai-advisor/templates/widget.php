@@ -10,7 +10,9 @@
         </div>
         <div class="rfkala-ai-chat-input-area">
             <input type="text" id="rfkala-ai-chat-input" class="rfkala-ai-chat-input" placeholder="فاصله و تجهیزات مدنظرتان را بنویسید..." autocomplete="off" />
-            <button id="rfkala-ai-chat-send" class="rfkala-ai-chat-send">ارسال</button>
+            <button id="rfkala-ai-chat-send" class="rfkala-ai-chat-send" aria-label="Send">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
         </div>
     </div>
     <button id="rfkala-ai-fab" class="rfkala-ai-fab" aria-label="Chat with AI Advisor">

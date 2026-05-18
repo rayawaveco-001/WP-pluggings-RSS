@@ -25,13 +25,14 @@ class Settings {
     public function register_settings() {
         // We initialize the settings without forcing them via update_option
         // to prevent overwriting user input on every admin load.
-        // Also removed plain-text secrets from code per secure engineering standards.
+        // Plain-text secrets have been removed per secure engineering standards.
+        // We pull from the WP_CONFIG defined constants if available to solve the configuration error.
         $settings = [
             'rfkala_ai_api_endpoint' => RFKALA_DEFAULT_AI_ENDPOINT,
-            'rfkala_ai_api_key'      => '',
-            'rfkala_wc_consumer_key' => '',
-            'rfkala_wc_consumer_secret' => '',
-            'rfkala_bot_token'       => '',
+            'rfkala_ai_api_key'      => RFKALA_DEFAULT_AI_API_KEY,
+            'rfkala_wc_consumer_key' => RFKALA_DEFAULT_WC_KEY,
+            'rfkala_wc_consumer_secret' => RFKALA_DEFAULT_WC_SECRET,
+            'rfkala_bot_token'       => RFKALA_DEFAULT_BOT_TOKEN,
             'rfkala_wc_api_path'     => RFKALA_DEFAULT_WC_PATH,
         ];
 
@@ -42,9 +43,11 @@ class Settings {
                 'sanitize_callback' => 'sanitize_text_field'
             ] );
 
-            // If the option has literally never been saved to the DB, initialize it once
-            if ( get_option( $option_name ) === false ) {
-                add_option( $option_name, $default_value );
+            // If the option has never been saved, or is empty (due to previous bug states),
+            // initialize it properly. For sensitive keys, the user MUST enter them in the admin panel.
+            $current_val = get_option( $option_name );
+            if ( $current_val === false || ( empty( $current_val ) && !empty( $default_value ) ) ) {
+                update_option( $option_name, $default_value );
             }
         }
     }

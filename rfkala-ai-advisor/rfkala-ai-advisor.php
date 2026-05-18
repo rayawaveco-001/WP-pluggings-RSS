@@ -20,9 +20,16 @@ define( 'RFKALA_AI_ADVISOR_VERSION', '1.0.0' );
 define( 'RFKALA_AI_ADVISOR_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'RFKALA_AI_ADVISOR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
-// Define hardcoded non-sensitive constants. Sensitive keys have been removed per secure engineering standards.
+// Define generic constants. Sensitive data must NOT be hardcoded here.
+// Provide instructions on how the user can set these in wp-config.php or the WP Admin UI instead.
 define( 'RFKALA_DEFAULT_AI_ENDPOINT', 'https://api.gapgpt.app/v1/chat/completions' );
 define( 'RFKALA_DEFAULT_WC_PATH', 'https://rfkala.ir/wp-json/wc/v3/products/' );
+
+// If the user hasn't defined these in their wp-config.php, provide empty defaults
+if ( ! defined( 'RFKALA_DEFAULT_AI_API_KEY' ) ) define( 'RFKALA_DEFAULT_AI_API_KEY', '' );
+if ( ! defined( 'RFKALA_DEFAULT_WC_KEY' ) ) define( 'RFKALA_DEFAULT_WC_KEY', '' );
+if ( ! defined( 'RFKALA_DEFAULT_WC_SECRET' ) ) define( 'RFKALA_DEFAULT_WC_SECRET', '' );
+if ( ! defined( 'RFKALA_DEFAULT_BOT_TOKEN' ) ) define( 'RFKALA_DEFAULT_BOT_TOKEN', '' );
 
 // Autoloader.
 spl_autoload_register( function ( $class ) {
