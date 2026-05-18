@@ -20,6 +20,10 @@ define( 'RFKALA_AI_ADVISOR_VERSION', '1.0.0' );
 define( 'RFKALA_AI_ADVISOR_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'RFKALA_AI_ADVISOR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
+// Define hardcoded non-sensitive constants. Sensitive keys have been removed per secure engineering standards.
+define( 'RFKALA_DEFAULT_AI_ENDPOINT', 'https://api.gapgpt.app/v1/chat/completions' );
+define( 'RFKALA_DEFAULT_WC_PATH', 'https://rfkala.ir/wp-json/wc/v3/products/' );
+
 // Autoloader.
 spl_autoload_register( function ( $class ) {
     $prefix = 'RfkalaAiAdvisor\\';

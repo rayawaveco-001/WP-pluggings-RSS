@@ -27,12 +27,12 @@ class Settings {
         // to prevent overwriting user input on every admin load.
         // Also removed plain-text secrets from code per secure engineering standards.
         $settings = [
-            'rfkala_ai_api_endpoint' => 'https://api.gapgpt.app/v1/chat/completions',
+            'rfkala_ai_api_endpoint' => RFKALA_DEFAULT_AI_ENDPOINT,
             'rfkala_ai_api_key'      => '',
             'rfkala_wc_consumer_key' => '',
             'rfkala_wc_consumer_secret' => '',
             'rfkala_bot_token'       => '',
-            'rfkala_wc_api_path'     => 'https://rfkala.ir/wp-json/wc/v3/products/',
+            'rfkala_wc_api_path'     => RFKALA_DEFAULT_WC_PATH,
         ];
 
         foreach ( $settings as $option_name => $default_value ) {

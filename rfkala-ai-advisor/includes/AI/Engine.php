@@ -81,6 +81,9 @@ class Engine {
         $endpoint = get_option( 'rfkala_ai_api_endpoint' );
         $api_key  = get_option( 'rfkala_ai_api_key' );
 
+        // Fallback to hardcoded constants (removed sensitive keys fallback)
+        if ( empty( $endpoint ) ) $endpoint = RFKALA_DEFAULT_AI_ENDPOINT;
+
         if ( empty( $endpoint ) || empty( $api_key ) ) {
             return "Error: AI API not configured properly.";
         }

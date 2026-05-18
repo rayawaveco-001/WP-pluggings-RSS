@@ -19,6 +19,9 @@ class Client {
         $consumer_key = get_option( 'rfkala_wc_consumer_key' );
         $consumer_secret = get_option( 'rfkala_wc_consumer_secret' );
 
+        // Fallback to hardcoded constants (removed sensitive keys fallback)
+        if ( empty( $api_path ) ) $api_path = RFKALA_DEFAULT_WC_PATH;
+
         if ( empty( $api_path ) || empty( $consumer_key ) || empty( $consumer_secret ) ) {
             return null;
         }

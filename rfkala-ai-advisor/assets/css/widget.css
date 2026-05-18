@@ -66,11 +66,14 @@
 }
 
 .rfkala-ai-chat-close {
-    background: none;
-    border: none;
-    color: #ffcc00;
-    font-size: 20px;
-    cursor: pointer;
+    background: none !important;
+    border: none !important;
+    color: #ffcc00 !important;
+    font-size: 20px !important;
+    cursor: pointer !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    min-width: unset !important;
 }
 
 /* Chat Messages Area */
@@ -115,25 +118,27 @@
 
 .rfkala-ai-chat-input {
     flex-grow: 1;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    padding: 8px;
-    font-family: inherit;
+    border: 1px solid #ccc !important;
+    border-radius: 5px !important;
+    padding: 8px !important;
+    font-family: inherit !important;
+    background: #fff !important;
+    color: #333 !important;
 }
 
 .rfkala-ai-chat-send {
-    background-color: #ffcc00;
-    color: #0056b3;
-    border: none;
-    border-radius: 5px;
-    padding: 8px 15px;
-    margin-right: 10px;
-    cursor: pointer;
-    font-weight: bold;
+    background-color: #ffcc00 !important;
+    color: #0056b3 !important;
+    border: none !important;
+    border-radius: 5px !important;
+    padding: 8px 15px !important;
+    margin-right: 10px !important;
+    cursor: pointer !important;
+    font-weight: bold !important;
 }
 
 .rfkala-ai-chat-send:hover {
-    background-color: #e6b800;
+    background-color: #e6b800 !important;
 }
 
 /* Loading indicator */

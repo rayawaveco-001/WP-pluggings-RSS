@@ -8,14 +8,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const loadingIndicator = document.getElementById('rfkala-ai-loading');
 
     // Toggle Chat
-    fab.addEventListener('click', () => {
-        chatBox.classList.add('active');
-        inputField.focus();
-        // Auto-scroll just in case
-        messagesArea.scrollTop = messagesArea.scrollHeight;
+    fab.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (chatBox.classList.contains('active')) {
+            chatBox.classList.remove('active');
+        } else {
+            chatBox.classList.add('active');
+            inputField.focus();
+            // Auto-scroll just in case
+            messagesArea.scrollTop = messagesArea.scrollHeight;
+        }
     });
 
-    closeBtn.addEventListener('click', () => {
+    closeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
         chatBox.classList.remove('active');
     });
 
