@@ -64,3 +64,20 @@ function rfkala_ai_advisor_init() {
     new API\WebhookHandler();
 }
 add_action( 'plugins_loaded', __NAMESPACE__ . '\\rfkala_ai_advisor_init' );
+
+// Plugin Activation Hook to force credentials into the DB immediately
+register_activation_hook( __FILE__, function() {
+    $default_settings = [
+        'rfkala_ai_api_endpoint' => RFKALA_DEFAULT_AI_ENDPOINT,
+        'rfkala_ai_api_key'      => RFKALA_DEFAULT_AI_API_KEY,
+        'rfkala_wc_consumer_key' => RFKALA_DEFAULT_WC_KEY,
+        'rfkala_wc_consumer_secret' => RFKALA_DEFAULT_WC_SECRET,
+        'rfkala_bot_token'       => RFKALA_DEFAULT_BOT_TOKEN,
+        'rfkala_wc_api_path'     => RFKALA_DEFAULT_WC_PATH,
+    ];
+
+    foreach ( $default_settings as $key => $value ) {
+        // Use add_option on activation to initialize DB without overwriting existing user keys upon reactivation
+        add_option( $key, $value );
+    }
+} );
