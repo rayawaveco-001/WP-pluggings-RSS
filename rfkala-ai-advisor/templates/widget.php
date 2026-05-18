@@ -1,15 +1,15 @@
 <div class="rfkala-ai-widget-container">
     <div id="rfkala-ai-chat-box" class="rfkala-ai-chat-box">
         <div class="rfkala-ai-chat-header">
-            <span>مشاور هوشمند RFKala</span>
+            <span>مشاوره تخصصی تجهیزات RFKala</span>
             <button id="rfkala-ai-chat-close" class="rfkala-ai-chat-close">&times;</button>
         </div>
         <div id="rfkala-ai-chat-messages" class="rfkala-ai-chat-messages">
             <div class="rfkala-msg bot">سلام! من مشاور فنی و مهندس شبکه RFKala هستم. چطور می‌تونم کمکتون کنم؟</div>
-            <div id="rfkala-ai-loading" class="rfkala-loading">در حال نوشتن...</div>
+            <div id="rfkala-ai-loading" class="rfkala-loading">مهندس در حال بررسی سیستم...</div>
         </div>
         <div class="rfkala-ai-chat-input-area">
-            <input type="text" id="rfkala-ai-chat-input" class="rfkala-ai-chat-input" placeholder="سوال خود را بپرسید..." autocomplete="off" />
+            <input type="text" id="rfkala-ai-chat-input" class="rfkala-ai-chat-input" placeholder="فاصله و تجهیزات مدنظرتان را بنویسید..." autocomplete="off" />
             <button id="rfkala-ai-chat-send" class="rfkala-ai-chat-send">ارسال</button>
         </div>
     </div>

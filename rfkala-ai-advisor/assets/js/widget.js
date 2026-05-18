@@ -9,10 +9,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Toggle Chat
     fab.addEventListener('click', () => {
-        chatBox.classList.toggle('active');
-        if (chatBox.classList.contains('active')) {
-            inputField.focus();
-        }
+        chatBox.classList.add('active');
+        inputField.focus();
+        // Auto-scroll just in case
+        messagesArea.scrollTop = messagesArea.scrollHeight;
     });
 
     closeBtn.addEventListener('click', () => {
@@ -28,8 +28,17 @@ document.addEventListener('DOMContentLoaded', function() {
         addMessage(text, 'user');
         inputField.value = '';
 
-        // Show loading
+        // Show dynamic "Typing..." indicator
         loadingIndicator.style.display = 'block';
+        loadingIndicator.textContent = "مهندس در حال بررسی سیستم...";
+
+        // Simple dot animation
+        let dotCount = 0;
+        const typingInterval = setInterval(() => {
+            dotCount = (dotCount + 1) % 4;
+            loadingIndicator.textContent = "مهندس در حال بررسی سیستم" + ".".repeat(dotCount);
+        }, 500);
+
         messagesArea.scrollTop = messagesArea.scrollHeight;
 
         try {
@@ -43,6 +52,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const result = await response.json();
 
+            clearInterval(typingInterval);
             loadingIndicator.style.display = 'none';
 
             if (result.success) {
@@ -52,6 +62,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
         } catch (error) {
+            clearInterval(typingInterval);
             loadingIndicator.style.display = 'none';
             addMessage('خطا در شبکه. لطفا دوباره تلاش کنید.', 'bot');
         }

@@ -23,8 +23,11 @@ class Settings {
     }
 
     public function register_settings() {
+        // We initialize the settings without forcing them via update_option
+        // to prevent overwriting user input on every admin load.
+        // Also removed plain-text secrets from code per secure engineering standards.
         $settings = [
-            'rfkala_ai_api_endpoint' => 'https://api.gapgpt.ai/v1/chat/completions',
+            'rfkala_ai_api_endpoint' => 'https://api.gapgpt.app/v1/chat/completions',
             'rfkala_ai_api_key'      => '',
             'rfkala_wc_consumer_key' => '',
             'rfkala_wc_consumer_secret' => '',
@@ -33,10 +36,15 @@ class Settings {
         ];
 
         foreach ( $settings as $option_name => $default_value ) {
-            register_setting( 'rfkala_ai_advisor_settings_group', $option_name );
-            // Ensure default values are added if the option doesn't exist yet
-            if ( false === get_option( $option_name ) && !empty( $default_value ) ) {
-                update_option( $option_name, $default_value );
+            // Provide default values correctly to the option registration
+            register_setting( 'rfkala_ai_advisor_settings_group', $option_name, [
+                'default' => $default_value,
+                'sanitize_callback' => 'sanitize_text_field'
+            ] );
+
+            // If the option has literally never been saved to the DB, initialize it once
+            if ( get_option( $option_name ) === false ) {
+                add_option( $option_name, $default_value );
             }
         }
     }

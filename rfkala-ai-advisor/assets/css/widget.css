@@ -31,22 +31,27 @@
 
 /* Chat Box */
 .rfkala-ai-chat-box {
-    display: none;
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+    pointer-events: none;
     position: absolute;
     bottom: 75px;
     right: 0;
     width: 320px;
-    max-height: 450px;
+    height: 450px;
     background-color: #fff;
     border-radius: 10px;
     box-shadow: 0 5px 15px rgba(0,0,0,0.2);
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 .rfkala-ai-chat-box.active {
-    display: flex;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
 }
 
 /* Chat Header */
