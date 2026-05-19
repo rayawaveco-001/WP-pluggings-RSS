@@ -89,7 +89,7 @@ class Plugin {
     public function render_widget_html() {
         ?>
         <div id="rfkala-ai-chatbot-wrapper">
-            <div class="rfkala-chatbot-container" style="display: none;">
+            <div class="rfkala-chatbot-container" style="display: none !important;">
                 <div class="rfkala-chatbot-header">
                     <span>پشتیبانی هوشمند و آنلاین</span>
                     <button id="rfkala-chatbot-close" title="بستن">&times;</button>

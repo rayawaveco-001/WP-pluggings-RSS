@@ -36,15 +36,24 @@ class AIWooLogic {
         $response = $this->call_gapgpt( $system_prompt, $user_message );
 
         if ( is_wp_error( $response ) ) {
-            // Fallback: Send to Bale if AI fails completely
+            $error_message = $response->get_error_message();
             $this->send_to_bale( $user_message, $session_id );
             wp_send_json_success( [
-                'reply' => 'متاسفانه در حال حاضر ارتباط با هوش مصنوعی برقرار نیست. پیام شما به پشتیبان انسانی ارسال شد و به زودی پاسخ داده می‌شود.'
+                'reply' => "متاسفانه در حال حاضر ارتباط با هوش مصنوعی برقرار نیست (خطا: $error_message). پیام شما به پشتیبان انسانی ارسال شد و به زودی پاسخ داده می‌شود."
             ] );
         }
 
+        $response_code = wp_remote_retrieve_response_code( $response );
         $body = wp_remote_retrieve_body( $response );
         $data = json_decode( $body, true );
+
+        if ( $response_code !== 200 ) {
+            $api_error = isset( $data['error']['message'] ) ? $data['error']['message'] : 'کد وضعیت: ' . $response_code;
+            $this->send_to_bale( $user_message, $session_id );
+            wp_send_json_success( [
+                'reply' => "متاسفانه در حال حاضر ارتباط با هوش مصنوعی برقرار نیست (خطا API: $api_error). پیام شما به پشتیبان انسانی ارسال شد."
+            ] );
+        }
 
         $ai_reply = $data['choices'][0]['message']['content'] ?? 'خطا در دریافت پاسخ.';
 
@@ -120,8 +129,10 @@ class AIWooLogic {
             'headers'     => [
                 'Content-Type'  => 'application/json',
                 'Authorization' => 'Bearer ' . $api_key,
+                'User-Agent'    => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             ],
-            'timeout'     => 15,
+            'timeout'     => 30,
+            'sslverify'   => false,
         ];
 
         return wp_remote_post( 'https://api.gapgpt.app/v1/chat/completions', $args );

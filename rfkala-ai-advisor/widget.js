@@ -28,15 +28,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // Toggle logic
     fab.addEventListener('click', function(e) {
         e.preventDefault();
-        container.style.display = 'flex';
-        fab.style.display = 'none';
+        container.style.setProperty('display', 'flex', 'important');
+        fab.style.setProperty('display', 'none', 'important');
         scrollToBottom();
     });
 
     closeBtn.addEventListener('click', function(e) {
         e.preventDefault();
-        container.style.display = 'none';
-        fab.style.display = 'flex';
+        container.style.setProperty('display', 'none', 'important');
+        fab.style.setProperty('display', 'flex', 'important');
     });
 
     // Send logic
